@@ -269,31 +269,7 @@ async def main():
     mexc_client.cancel_all_orders()
 
 
-    #     print(f'active asks: {active_asks}')
-    #     print(f'active bids: {active_bids}')
-    # md = market_depth(percent=Decimal(2), orderbook=mexc_client.get_orderbook())
-
-    # if md < Decimal("100"):
-
-    # await asyncio.gather(update_orderbook_mexc_task, update_balance_mexc, update_orderbook_kucoin_task, tracking_orders_task, cancel_all_orders_task, spread_task)
-
-    # y = asyncio.create_task(mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=Decimal(500), price=Decimal("0.00263")))
-    # await asyncio.gather(x, y)
-
-    # test = asyncio.create_task(mexc_client.update_balances())
-    #
-    # while True:
-    #     await asyncio.sleep(5)
-    #     print(await mexc_client.get_balance())
-
-
-
-    # asyncio.create_task(mexc_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
-    # asyncio.create_task(kucoin_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
-    #
-    # while True:
-    #     await asyncio.sleep(1)
-    #     print(get_fair_price())
-
 if __name__ == '__main__':
     asyncio.run(main())
+
+# add skewing, look at the balance, make event queue
