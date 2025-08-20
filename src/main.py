@@ -18,7 +18,7 @@ getcontext().prec = 6
 api_key_mexc = os.getenv("API_KEY_MEXC")
 api_secret_mexc = os.getenv("API_SECRET_MEXC")
 
-EXPECTED_MARKET_DEPTH = Decimal(200)
+EXPECTED_MARKET_DEPTH = Decimal(350)
 
 
 async def on_orderbook_change():
