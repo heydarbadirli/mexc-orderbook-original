@@ -2,25 +2,17 @@ import websockets
 import http.client
 import json
 from loguru import logger
-from src.model import CryptoCurrency, OrderBook, OrderLevel
+from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient
 from decimal import Decimal
-import asyncio
 
 
-class KucoinClient:
-    def __init__(self, orderbook_change=None):
+class KucoinClient(ExchangeClient):
+    def __init__(self, on_orderbook_change=None):
         self.orderbook = OrderBook(asks=[], bids=[])
-        self.orderbook_change = orderbook_change
+        self.on_orderbook_change = on_orderbook_change
 
     def get_orderbook(self):
-        # print(f'returning kucoin orderbook: {self.orderbook}')
         return self.orderbook
-
-
-    # async def orderbook_change_wrapper(self):
-    #     print(f'printing kucoin orderbook: {self.get_orderbook()}')
-    #     from src.main import orderbook_change
-    #     await orderbook_change()
 
 
     @staticmethod
@@ -44,7 +36,7 @@ class KucoinClient:
         subscribe_message = {
             "id": "sub-001",
             "type": "subscribe",
-            "topic": f"/spotMarket/level2Depth5:{symbol}",
+            "topic": f"/spotMarket/level2Depth50:{symbol}",
             "response": True
         }
 
@@ -64,15 +56,13 @@ class KucoinClient:
                     bids = []
                     # print(data)
                     for ask in data['data']['asks']:
-                        asks.append(OrderLevel(price=Decimal(str(ask[0])), quantity=Decimal(str(ask[1]))))
+                        asks.append(OrderLevel(price=Decimal(str(ask[0])), size=Decimal(str(ask[1]))))
 
                     for bid in data['data']['bids']:
-                        bids.append(OrderLevel(price=Decimal(str(bid[0])), quantity=Decimal(str(bid[1]))))
+                        bids.append(OrderLevel(price=Decimal(str(bid[0])), size=Decimal(str(bid[1]))))
 
                     self.orderbook = OrderBook(asks=asks, bids=bids)
-                    # print(f'kucoin: {self.orderbook}')
-                    # print('YYY', self.get_orderbook())
-                    await self.orderbook_change()
+                    await self.on_orderbook_change()
 
                 except Exception as e:
                     ...

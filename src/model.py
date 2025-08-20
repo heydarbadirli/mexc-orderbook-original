@@ -8,8 +8,13 @@ class CryptoCurrency(Enum):
 
 class OrderLevel(msgspec.Struct):
     price: Decimal
-    quantity: Decimal
+    size: Decimal
 
 class OrderBook(msgspec.Struct):
     asks: list[OrderLevel]
     bids: list[OrderLevel]
+
+class ExchangeClient():
+    @staticmethod
+    def get_orderbook() -> OrderBook:
+        ...

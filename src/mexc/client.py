@@ -1,4 +1,4 @@
-from src.model import CryptoCurrency, OrderBook, OrderLevel
+from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient
 import websockets
 from src.mexc.websocket_proto import PushDataV3ApiWrapper_pb2
 from google.protobuf.json_format import MessageToDict
@@ -14,27 +14,24 @@ import asyncio
 from urllib.parse import urlencode
 
 
-class MexcClient:
-    def __init__(self, api_key: str, api_secret: str, orderbook_change=None, update_orders=None):
+class MexcClient(ExchangeClient):
+    def __init__(self, api_key: str, api_secret: str, on_orderbook_change=None, update_active_orders=None):
         self.api_key = api_key
         self.api_secret = api_secret
         self.ws_url = "wss://wbs-api.mexc.com/ws"
         self.orderbook = OrderBook(asks=[], bids=[])
         self.balances = {}
-        self.orderbook_change=orderbook_change
-        self.update_orders = update_orders
+        self.on_orderbook_change=on_orderbook_change
+        self.update_active_orders = update_active_orders
 
 
     def get_orderbook(self):
-        # print(f'returning mexc orderbook: {self.orderbook}')
         return self.orderbook
 
 
-    # async def orderbook_change_wrapper(self):
-    #     from src.main import orderbook_change
-    #     print(f'printing orderbook {self.get_orderbook()}')
-    #     await orderbook_change()
-    #
+    def get_balance(self):
+        return self.balances
+
 
     async def update_orderbook(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
         symbol = first_currency.value + second_currency.value
@@ -42,7 +39,7 @@ class MexcClient:
         async with websockets.connect(self.ws_url) as ws:
             subscribe_message = {
                 "method": "SUBSCRIPTION",
-                "params": [f"spot@public.limit.depth.v3.api.pb@{symbol}@5"]
+                "params": [f"spot@public.limit.depth.v3.api.pb@{symbol}@10"]
             }
 
             await ws.send(json.dumps(subscribe_message))
@@ -61,20 +58,15 @@ class MexcClient:
                     orderbook_dict = MessageToDict(result)
                     data = {'asks': orderbook_dict['publicLimitDepths']['asks'], 'bids': orderbook_dict['publicLimitDepths']['bids']}
 
-                    asks = []
-                    bids = []
-                    # print(data)
+                    asks, bids = [], []
 
                     for ask in data['asks']:
-                        asks.append(OrderLevel(price=Decimal(str(ask['price'])), quantity=Decimal(str(ask['quantity']))))
+                        asks.append(OrderLevel(price=Decimal(str(ask['price'])), size=Decimal(str(ask['quantity']))))
                     for bid in data['bids']:
-                        bids.append(OrderLevel(price=Decimal(str(bid['price'])), quantity=Decimal(str(bid['quantity']))))
+                        bids.append(OrderLevel(price=Decimal(str(bid['price'])), size=Decimal(str(bid['quantity']))))
 
                     self.orderbook = OrderBook(asks=asks, bids=bids)
-                    # print(f'mexc: {self.orderbook}')
-                    # print('XXX', self.get_orderbook())
-                    # await self.orderbook_change_wrapper()
-                    await self.orderbook_change()
+                    await self.on_orderbook_change()
                 except Exception as e:
                     ...
                     # logger.error(f"error: {e}")
@@ -139,10 +131,6 @@ class MexcClient:
                 await asyncio.sleep(1)
             except Exception as e:
                 logger.error(f'error: {e}')
-
-
-    async def get_balance(self):
-        return self.balances
 
 
     async def cancel_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, order_id: str):
@@ -212,19 +200,19 @@ class MexcClient:
                     raw_data = await ws.recv()
                     data = json.loads(raw_data)
 
-                    # logger.info(f"tracking orders mexc, data: {data}")
-
                     if 'msg' in data and data['msg'] == "spot@private.orders":
                         logger.info("Subscribed to MEXC order tracking")
                     elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2:
                         data = data['d']
-                        # print(data)
                         side = 'buy' if data['tradeType'] == 1 else 'sell'
                         logger.info(f"tracking orders mexc, data: {data}")
-                        self.update_orders(side)
-                    # print(data)
+                        self.update_active_orders(side)
+                    elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 3:
+                        data = data['d']
+                        logger.info(f"tracking orders mexc, data: {data}")
                 except Exception as e:
                     logger.error(f"Error {e}")
+
 
     def cancel_all_orders(self):
         timestamp = round(time.time() * 1000)
