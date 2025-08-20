@@ -59,8 +59,8 @@ async def main():
     while True:
         await asyncio.sleep(60)
         logger.info(f'balance :{mexc_client.get_balance()}')
-        logger.info(f'market depth: {calculate_market_depth(client=mexc_client, percent=Decimal('2'))}')
-        logger.info(f'fair price: {calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=[], active_bids=[], percent=Decimal('2'))}')
+        logger.info(f"market depth: {calculate_market_depth(client=mexc_client, percent=Decimal('2'))}")
+        logger.info(f"fair price: {calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=[], active_bids=[], percent=Decimal('2'))}")
         logger.info(f'market spread: {await track_market_spread(mexc_client=mexc_client)}')
 
     mexc_client.cancel_all_orders()
