@@ -85,8 +85,8 @@ async def main():
         logger.info(f"usdt free balance: {balances['USDT']['free']}")
         logger.info(f"rmv free balance {balances['RMV']['free']}, approximated usd value: {balances['RMV']['free'] * fair_price}")
         logger.info(f"usdt locked balance: {balances['USDT']['locked']}")
-        logger.info(f"rmv locked balance: {balances['RMV']['locked']} RMV, approximate usd value: {balances['RMV']['locked'] * mexc_orderbook.bids[0].price}")
-        full_account_balance = balances['USDT']['free'] + balances['USDT']['locked'] + balances['RMV']['free'] * mexc_orderbook.bids[0].price + balances['RMV']['locked'] * mexc_orderbook.bids[0].price
+        logger.info(f"rmv locked balance: {balances['RMV']['locked']} RMV, approximate usd value: {balances['RMV']['locked'] * fair_price}")
+        full_account_balance = balances['USDT']['free'] + balances['USDT']['locked'] + balances['RMV']['free'] * fair_price + balances['RMV']['locked'] * fair_price
         logger.info(f"full_account_balance: {full_account_balance}\n")
 
     # mexc_client.cancel_all_orders()
