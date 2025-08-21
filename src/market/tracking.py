@@ -16,10 +16,10 @@ order_lock = asyncio.Lock()
 
 def update_active_orders(side: str):
     if side == 'sell':
-        logger.info(f'removing first element from asks, size: {len(active_asks)}')
+        # logger.info(f'removing first element from asks, size: {len(active_asks)}')
         active_asks.pop(0)
     elif side == 'buy':
-        logger.info(f'removing first element from bids, size: {len(active_bids)}')
+        # logger.info(f'removing first element from bids, size: {len(active_bids)}')
         active_bids.pop(0)
 
 
