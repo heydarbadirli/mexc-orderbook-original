@@ -27,6 +27,18 @@ async def add_fair_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     mexc_orderbook = mexc_client.get_orderbook()
     kucoin_orderbook = kucoin_client.get_orderbook()
 
+    fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_asks, active_bids=active_bids, percent=Decimal(2))
+
+    balances = mexc_client.get_balance()
+    full_usdt_balance = balances['USDT']['free'] + balances['USDT']['locked']
+    full_rmv_value = (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
+    skew = 0
+
+    if full_rmv_value - full_usdt_balance > 100:
+        skew -= MEXC_TICK_SIZE
+    elif full_rmv_value - full_usdt_balance < -100:
+        skew += MEXC_TICK_SIZE
+
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
 
@@ -39,32 +51,22 @@ async def add_fair_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
         active_bids.pop()
 
 
-    fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_asks, active_bids=active_bids, percent=Decimal(2))
-
-
     for i in range(len(active_asks)-1, -1, -1):
         ask = active_asks[i]
-        if ask['price'] <= fair_price + MEXC_TICK_SIZE:
+        if ask['price'] <= fair_price + MEXC_TICK_SIZE + skew:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=ask['order_id'])
             # logger.info(f'removing {i} elements from asks, size: {len(active_asks)}')
             del active_asks[i]
 
     for i in range(len(active_bids)-1, -1, -1):
         bid = active_bids[i]
-        if bid['price'] >= fair_price - MEXC_TICK_SIZE:
+        if bid['price'] >= fair_price - MEXC_TICK_SIZE + skew:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=bid['order_id'])
             # logger.info(f'removing {i} elements from bids, size: {len(active_bids)}')
             del active_bids[i]
 
-    balances = mexc_client.get_balance()
-    full_usdt_balance = balances['USDT']['free'] + balances['USDT']['locked']
-    full_rmv_value = (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
-    skew = 0
 
-    if full_rmv_value - full_usdt_balance > 100:
-        skew -= MEXC_TICK_SIZE
-    elif full_rmv_value - full_usdt_balance < -100:
-        skew += MEXC_TICK_SIZE
+
 
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + skew
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + skew
