@@ -54,7 +54,7 @@ class KucoinClient(ExchangeClient):
 
                     asks = []
                     bids = []
-                    # print(data)
+
                     for ask in data['data']['asks']:
                         asks.append(OrderLevel(price=Decimal(str(ask[0])), size=Decimal(str(ask[1]))))
 
@@ -65,6 +65,4 @@ class KucoinClient(ExchangeClient):
                     await self.on_orderbook_change()
 
                 except Exception as e:
-                    ...
-                    # print(asks, bids)
-                    # logger.error(f"Error: {e}")
+                    logger.error(f"Error: {e}")
