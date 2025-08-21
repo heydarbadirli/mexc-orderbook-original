@@ -30,8 +30,6 @@ async def add_fair_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
 
-
-
     while len(active_asks) > 5:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[len(active_asks) - 1]['order_id'])
         active_asks.pop()
@@ -58,8 +56,18 @@ async def add_fair_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
             # logger.info(f'removing {i} elements from bids, size: {len(active_bids)}')
             del active_bids[i]
 
-    act_ask = fair_price + 2 * MEXC_TICK_SIZE
-    act_bid = fair_price - 2 * MEXC_TICK_SIZE
+    balances = mexc_client.get_balance()
+    full_usdt_balance = balances['USDT']['free'] + balances['USDT']['locked']
+    full_rmv_value = (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
+    skew = 0
+
+    if full_rmv_value - full_usdt_balance > 100:
+        skew -= MEXC_TICK_SIZE
+    elif full_rmv_value - full_usdt_balance < -100:
+        skew += MEXC_TICK_SIZE
+
+    act_ask = fair_price + 2 * MEXC_TICK_SIZE + skew
+    act_bid = fair_price - 2 * MEXC_TICK_SIZE + skew
 
     for _ in range(5):
         found = any(d['price'] == act_ask for d in active_asks)
