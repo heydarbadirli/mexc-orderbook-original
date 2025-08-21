@@ -28,7 +28,8 @@ async def add_fair_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     kucoin_orderbook = kucoin_client.get_orderbook()
 
     fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_asks, active_bids=active_bids, percent=Decimal(2))
-
+    if fair_price is None:
+        return
     balances = mexc_client.get_balance()
     full_usdt_balance = balances['USDT']['free'] + balances['USDT']['locked']
     full_rmv_value = (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
@@ -64,8 +65,6 @@ async def add_fair_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=bid['order_id'])
             # logger.info(f'removing {i} elements from bids, size: {len(active_bids)}')
             del active_bids[i]
-
-
 
 
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + skew
