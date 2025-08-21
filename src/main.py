@@ -34,7 +34,7 @@ async def afo():
     while True:
         async with order_lock:
             await add_fair_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
 
 # async def tms():
 #     while True:

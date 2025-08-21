@@ -14,7 +14,10 @@ MEXC_TICK_SIZE = Decimal("0.00001")
 
 order_lock = asyncio.Lock()
 
-def update_active_orders(side: str):
+amount_bought = 0
+amount_sold = 0
+
+def update_active_orders(side: str, ):
     if side == 'sell':
         # logger.info(f'removing first element from asks, size: {len(active_asks)}')
         active_asks.pop(0)
@@ -35,10 +38,10 @@ async def add_fair_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     full_rmv_value = (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
     skew = 0
 
-    if full_rmv_value - full_usdt_balance > 100:
-        skew -= MEXC_TICK_SIZE
-    elif full_rmv_value - full_usdt_balance < -100:
-        skew += MEXC_TICK_SIZE
+    # if full_rmv_value - full_usdt_balance > 100:
+    #     skew -= MEXC_TICK_SIZE
+    # elif full_rmv_value - full_usdt_balance < -100:
+    #     skew += MEXC_TICK_SIZE
 
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
