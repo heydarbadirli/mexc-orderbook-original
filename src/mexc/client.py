@@ -104,7 +104,7 @@ class MexcClient(ExchangeClient):
                     raw_data = await ws.recv()
                     data = json.loads(raw_data)
 
-                    if 'msg' in data and data['msg'] == "spot@private.orders.v3.api.pb":
+                    if 'msg' in data and data['msg'] == "spot@private.orders":
                         logger.info("Subscribed to MEXC order tracking")
                     elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2:
                         data = data['d']

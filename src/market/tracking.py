@@ -30,18 +30,19 @@ async def add_fair_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
 
-    # while len(active_asks) > 5:
-    #     await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[len(active_asks) - 1]['order_id'])
-    #     logger.info(f'removing last element from asks, size: {len(active_asks)}')
-    #     active_asks.pop()
-    #
-    # while len(active_bids) > 5:
-    #     await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[len(active_bids) - 1]['order_id'])
-    #     logger.info(f'removing last element from bids, size: {len(active_bids)}')
-    #     active_bids.pop()
+
+
+    while len(active_asks) > 5:
+        await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[len(active_asks) - 1]['order_id'])
+        active_asks.pop()
+
+    while len(active_bids) > 5:
+        await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[len(active_bids) - 1]['order_id'])
+        active_bids.pop()
 
 
     fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_asks, active_bids=active_bids, percent=Decimal(2))
+
 
     for i in range(len(active_asks)-1, -1, -1):
         ask = active_asks[i]
