@@ -21,11 +21,15 @@ def calculate_market_depth(client: ExchangeClient, percent: Decimal):
     for ask in orderbook.asks:
         if ask.price <= upper_bound:
             ask_depth += int(ask.size)
+        else:
+            break
 
     bid_depth = 0
     for bid in orderbook.bids:
         if bid.price >= lower_bound:
             bid_depth += int(bid.size)
+        else:
+            break
 
     market_depth = (ask_depth + bid_depth) * mid_price
     return market_depth

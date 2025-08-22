@@ -18,7 +18,7 @@ getcontext().prec = 6
 api_key_mexc = os.getenv("API_KEY_MEXC")
 api_secret_mexc = os.getenv("API_SECRET_MEXC")
 
-EXPECTED_MARKET_DEPTH = Decimal(750)
+EXPECTED_MARKET_DEPTH = Decimal(1000)
 
 order_lock = asyncio.Lock()
 
@@ -74,7 +74,7 @@ async def main():
     asyncio.create_task(tmd())
 
     while True:
-        await asyncio.sleep(120)
+        await asyncio.sleep(10)
         balances = mexc_client.get_balance()
 
         market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
