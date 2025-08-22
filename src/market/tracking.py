@@ -186,7 +186,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
             active_asks[i] = {'order_id': order_id, 'price': price, 'size': size}
 
     for i in range(0, len(active_bids)):
-        if active_bids[i]['price'] < lower_bound and active_bids[i]['size'] < 10000:
+        if active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 10000:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[i]['order_id'])
             size = Decimal(random.randint(5000, 10000))
             price = active_bids[i]['price']
