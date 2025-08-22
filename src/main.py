@@ -74,7 +74,7 @@ async def main():
     asyncio.create_task(tmd())
 
     while True:
-        await asyncio.sleep(10)
+        await asyncio.sleep(120)
         balances = mexc_client.get_balance()
 
         market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
