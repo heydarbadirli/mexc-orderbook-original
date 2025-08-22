@@ -20,10 +20,10 @@ class MexcClient(ExchangeClient):
         self.api_secret = api_secret
         self.orderbook = OrderBook(asks=[], bids=[])
         self.balances = {}
-        self.on_orderbook_change=on_orderbook_change
         self.update_active_orders = update_active_orders
         self.ws_base_url = "wss://wbs-api.mexc.com/ws"
         self.rest_base_url = "https://api.mexc.com"
+        self.on_orderbook_change = on_orderbook_change
 
 
     def get_orderbook(self):
@@ -106,14 +106,10 @@ class MexcClient(ExchangeClient):
 
                     if 'msg' in data and data['msg'] == "spot@private.orders":
                         logger.info("Subscribed to MEXC order tracking")
-                    elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2:
-                        data = data['d']
-                        side = 'buy' if data['tradeType'] == 1 else 'sell'
-                        logger.info(f"tracking orders mexc, data: {data}")
-                        self.update_active_orders(side)
-                    elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 3:
+                    elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2 or data['d']['status'] == 3:
                         data = data['d']
                         logger.info(f"tracking orders mexc, data: {data}")
+                        self.update_active_orders(data=data)
                 except Exception as e:
                     logger.error(f"Error: {e}")
 
@@ -139,43 +135,55 @@ class MexcClient(ExchangeClient):
     #             except Exception as e:
     #                 logger.error(f"Error: {e}")
 
+    # async def _get_orderbook_snapshot(self, first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT):
+    #     symbol = first_currency.value + second_currency.value
+    #
+    #     url = self.rest_base_url + f'/api/v3/depth?symbol={symbol}&limit=1000'
+    #     print(url)
+    #     url = 'https://api.mexc.com/api/v3/depth?symbol=MXBTC&limit=1000'
+    #     url = 'https://api.mexc.com/api/v3/depth?symbol=RMVUSDT&limit=1000'
+    #
+    #     async with aiohttp.ClientSession() as session:
+    #         async with session.get(url) as response:
+    #             print(response.status)
+    #             if response.status == 200:
+    #                 data = await response.json()
+    #                 print(data)
 
     async def update_orderbook(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
         symbol = first_currency.value + second_currency.value
+        while True:
+            try:
+                async with websockets.connect(self.ws_base_url, ping_interval=20, ping_timeout=20) as ws:
+                    subscribe_message = {
+                        "method": "SUBSCRIPTION",
+                        "params": [f"spot@public.limit.depth.v3.api.pb@{symbol}@10"]
+                    }
 
-        async with websockets.connect(self.ws_base_url) as ws:
-            subscribe_message = {
-                "method": "SUBSCRIPTION",
-                "params": [f"spot@public.limit.depth.v3.api.pb@{symbol}@10"]
-            }
+                    await ws.send(json.dumps(subscribe_message))
+                    logger.info(f'Subscribed to topic, MEXC')
 
-            await ws.send(json.dumps(subscribe_message))
-            logger.info(f'Subscribed to topic, MEXC')
+                    while True:
+                        try:
+                            message = await ws.recv()
+                            if isinstance(message, str):
+                                continue
 
-            while True:
-                try:
-                    message = await ws.recv()
+                            result = PushDataV3ApiWrapper_pb2.PushDataV3ApiWrapper()
+                            result.ParseFromString(message)
 
-                    if isinstance(message, str):
-                        continue
+                            orderbook_dict = MessageToDict(result)
+                            data = {'asks': orderbook_dict['publicLimitDepths']['asks'], 'bids': orderbook_dict['publicLimitDepths']['bids']}
 
-                    result = PushDataV3ApiWrapper_pb2.PushDataV3ApiWrapper()
-                    result.ParseFromString(message)
+                            asks = [OrderLevel(price=Decimal(str(ask['price'])), size=Decimal(str(ask['quantity']))) for ask in data['asks']]
+                            bids = [OrderLevel(price=Decimal(str(bid['price'])), size=Decimal(str(bid['quantity']))) for bid in data['bids']]
 
-                    orderbook_dict = MessageToDict(result)
-                    data = {'asks': orderbook_dict['publicLimitDepths']['asks'], 'bids': orderbook_dict['publicLimitDepths']['bids']}
-
-                    asks, bids = [], []
-
-                    for ask in data['asks']:
-                        asks.append(OrderLevel(price=Decimal(str(ask['price'])), size=Decimal(str(ask['quantity']))))
-                    for bid in data['bids']:
-                        bids.append(OrderLevel(price=Decimal(str(bid['price'])), size=Decimal(str(bid['quantity']))))
-
-                    self.orderbook = OrderBook(asks=asks, bids=bids)
-                    await self.on_orderbook_change()
-                except Exception as e:
-                    logger.error(f"error: {e}")
+                            self.orderbook = OrderBook(asks=asks, bids=bids)
+                            asyncio.create_task(self.on_orderbook_change())
+                        except Exception as e:
+                            logger.error(f"error: {e}")
+            except Exception as e:
+                logger.error(f'WebSocket connection error: {e}')
 
 
     async def place_limit_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, side: str, order_type: str, size: Decimal, price: Decimal):

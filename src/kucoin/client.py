@@ -4,6 +4,7 @@ import json
 from loguru import logger
 from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient
 from decimal import Decimal
+import asyncio
 
 
 class KucoinClient(ExchangeClient):
@@ -30,39 +31,36 @@ class KucoinClient(ExchangeClient):
 
 
     async def update_orderbook(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
-        ws_url = await self._get_ws_url_public()
         symbol = first_currency.value + '-' + second_currency.value
 
-        subscribe_message = {
-            "id": "sub-001",
-            "type": "subscribe",
-            "topic": f"/spotMarket/level2Depth50:{symbol}",
-            "response": True
-        }
+        while True:
+            try:
+                ws_url = await self._get_ws_url_public()
+                subscribe_message = {
+                    "id": "sub-001",
+                    "type": "subscribe",
+                    "topic": f"/spotMarket/level2Depth50:{symbol}",
+                    "response": True
+                }
 
-        async with websockets.connect(ws_url) as ws:
-            await ws.send(json.dumps(subscribe_message))
-            logger.info(f"Subscribed to topic {first_currency.value + second_currency.value}, KUCOIN")
+                async with websockets.connect(ws_url, ping_interval=20, ping_timeout=20) as ws:
+                    await ws.send(json.dumps(subscribe_message))
+                    logger.info(f"Subscribed to topic {first_currency.value + second_currency.value}, KUCOIN")
 
-            while True:
-                try:
-                    message = await ws.recv()
-                    data = json.loads(message)
+                    while True:
+                        try:
+                            message = await ws.recv()
+                            data = json.loads(message)
 
-                    if data['type'] != "message":
-                        continue
+                            if data['type'] != "message":
+                                continue
 
-                    asks = []
-                    bids = []
+                            asks = [OrderLevel(price=Decimal(str(a[0])), size=Decimal(str(a[1]))) for a in data['data']['asks']]
+                            bids = [OrderLevel(price=Decimal(str(a[0])), size=Decimal(str(a[1]))) for a in data['data']['bids']]
 
-                    for ask in data['data']['asks']:
-                        asks.append(OrderLevel(price=Decimal(str(ask[0])), size=Decimal(str(ask[1]))))
-
-                    for bid in data['data']['bids']:
-                        bids.append(OrderLevel(price=Decimal(str(bid[0])), size=Decimal(str(bid[1]))))
-
-                    self.orderbook = OrderBook(asks=asks, bids=bids)
-                    await self.on_orderbook_change()
-
-                except Exception as e:
-                    logger.error(f"Error: {e}")
+                            self.orderbook = OrderBook(asks=asks, bids=bids)
+                            asyncio.create_task(self.on_orderbook_change())
+                        except Exception as e:
+                            logger.error(f'Exception: {e}')
+            except Exception as e:
+                logger.error(f"Error: {e}")

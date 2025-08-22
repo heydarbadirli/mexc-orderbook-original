@@ -17,16 +17,40 @@ order_lock = asyncio.Lock()
 amount_bought = 0
 amount_sold = 0
 
-def update_active_orders(side: str, ):
+def update_active_orders(data):
+    side = 'buy' if data['tradeType'] == 1 else 'sell'
+    size = Decimal(str(data['singleDealQuantity']))
+    price = Decimal(str(data['singleDealPrice']))
+
+    from src.main import kucoin_client
+    kucoin_orderbook = kucoin_client.get_orderbook()
+
+
     if side == 'sell':
-        # logger.info(f'removing first element from asks, size: {len(active_asks)}')
-        active_asks.pop(0)
+        kucoin_lowest_ask = kucoin_orderbook.asks[0]
+
+        if price > kucoin_lowest_ask.price * Decimal('1.001'):
+            size = min(size, kucoin_lowest_ask.size)
+            profit = (price - kucoin_lowest_ask.price * Decimal('1.001')) * size
+
+            logger.info(f"Arbitrage was possible, profit: {profit}")
+
+        if data['status'] == 2:
+            active_asks.pop(0)
     elif side == 'buy':
-        # logger.info(f'removing first element from bids, size: {len(active_bids)}')
-        active_bids.pop(0)
+        kucoin_highest_bid = kucoin_orderbook.bids[0]
+
+        if price < kucoin_highest_bid.price * Decimal('1.001'):
+            size = min(size, kucoin_highest_bid.size)
+            profit = (price - kucoin_highest_bid.price * Decimal('1.001')) * size
+
+            logger.info(f"Arbitrage was possible, profit: {profit}")
+
+        if data['status'] == 2:
+            active_bids.pop(0)
 
 
-async def add_fair_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
+async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     mexc_orderbook = mexc_client.get_orderbook()
     kucoin_orderbook = kucoin_client.get_orderbook()
 
