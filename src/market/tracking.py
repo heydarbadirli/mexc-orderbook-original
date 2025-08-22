@@ -29,22 +29,22 @@ def update_active_orders(data):
     if side == 'sell':
         kucoin_lowest_ask = kucoin_orderbook.asks[0]
 
-        if price > kucoin_lowest_ask.price * Decimal('1.001'):
-            size = min(size, kucoin_lowest_ask.size)
-            profit = (price - kucoin_lowest_ask.price * Decimal('1.001')) * size
+        # if price > kucoin_lowest_ask.price * Decimal('1.001'):
+        size = min(size, kucoin_lowest_ask.size)
+        profit = (price - kucoin_lowest_ask.price * Decimal('1.001')) * size
 
-            logger.info(f"Arbitrage was possible, profit: {profit}")
+        logger.info(f"Arbitrage, profit: {profit}")
 
         if data['status'] == 2:
             active_asks.pop(0)
     elif side == 'buy':
         kucoin_highest_bid = kucoin_orderbook.bids[0]
 
-        if price < kucoin_highest_bid.price * Decimal('1.001'):
-            size = min(size, kucoin_highest_bid.size)
-            profit = (price - kucoin_highest_bid.price * Decimal('1.001')) * size
+        # if price < kucoin_highest_bid.price * Decimal('1.001'):
+        size = min(size, kucoin_highest_bid.size)
+        profit = (price - kucoin_highest_bid.price * Decimal('1.001')) * size
 
-            logger.info(f"Arbitrage was possible, profit: {profit}")
+        logger.info(f"Arbitrage, profit: {profit}")
 
         if data['status'] == 2:
             active_bids.pop(0)
