@@ -15,15 +15,15 @@ from urllib.parse import urlencode
 
 
 class MexcClient(ExchangeClient):
-    def __init__(self, api_key: str, api_secret: str, on_orderbook_change=None, update_active_orders=None):
+    def __init__(self, api_key: str, api_secret: str, on_orderbook_change=None, on_filled_order=None):
         self.api_key = api_key
         self.api_secret = api_secret
         self.orderbook = OrderBook(asks=[], bids=[])
         self.balances = {}
-        self.update_active_orders = update_active_orders
         self.ws_base_url = "wss://wbs-api.mexc.com/ws"
         self.rest_base_url = "https://api.mexc.com"
         self.on_orderbook_change = on_orderbook_change
+        self.on_filled_order = on_filled_order
 
 
     def get_orderbook(self):
@@ -109,7 +109,7 @@ class MexcClient(ExchangeClient):
                     elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2 or data['d']['status'] == 3:
                         data = data['d']
                         logger.info(f"tracking orders mexc, data: {data}")
-                        self.update_active_orders(data=data)
+                        self.on_filled_order(data=data)
                 except Exception as e:
                     logger.error(f"Error: {e}")
 

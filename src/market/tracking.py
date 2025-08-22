@@ -17,12 +17,10 @@ order_lock = asyncio.Lock()
 amount_bought = 0
 amount_sold = 0
 
-def update_active_orders(data):
+def update_active_orders(data, kucoin_client: KucoinClient):
     side = 'buy' if data['tradeType'] == 1 else 'sell'
     size = Decimal(str(data['singleDealQuantity']))
     price = Decimal(str(data['singleDealPrice']))
-
-    from src.main import kucoin_client
     kucoin_orderbook = kucoin_client.get_orderbook()
 
 

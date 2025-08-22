@@ -22,6 +22,9 @@ EXPECTED_MARKET_DEPTH = Decimal(500)
 
 order_lock = asyncio.Lock()
 
+def on_filled_order(data):
+    update_active_orders(data=data, kucoin_client=kucoin_client)
+
 
 async def on_orderbook_change():
     async with order_lock:
@@ -50,7 +53,7 @@ async def tmd():
         await asyncio.sleep(0.5)
 
 
-mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, on_orderbook_change=on_orderbook_change, update_active_orders=update_active_orders)
+mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, on_orderbook_change=on_orderbook_change, on_filled_order=on_filled_order)
 kucoin_client = KucoinClient(on_orderbook_change=on_orderbook_change)
 
 
@@ -65,6 +68,7 @@ async def main():
     asyncio.create_task(mexc_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
     asyncio.create_task(kucoin_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
     asyncio.create_task(mexc_client.track_active_orders(listen_key=listen_key))
+
 
     # asyncio.create_task(afo())
     asyncio.create_task(tmd())
