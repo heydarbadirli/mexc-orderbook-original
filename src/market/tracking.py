@@ -48,6 +48,8 @@ def update_active_orders(data, kucoin_client: KucoinClient):
 
 
 async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
+    # logger.info(f'active asks: {active_asks}')
+    # logger.info(f'active bids: {active_bids}')
     mexc_orderbook = mexc_client.get_orderbook()
     kucoin_orderbook = kucoin_client.get_orderbook()
 
@@ -76,6 +78,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[len(active_bids) - 1]['order_id'])
         active_bids.pop()
 
+
     while len(active_asks) > 0 and active_asks[0]['price'] <= fair_price + MEXC_TICK_SIZE + ask_shift:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[0]['order_id'])
         active_asks.pop(0)
@@ -83,20 +86,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     while len(active_bids) > 0 and active_bids[0]['price'] >= fair_price - MEXC_TICK_SIZE + bid_shift:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[0]['order_id'])
         active_bids.pop(0)
-
-    # for i in range(len(active_asks)-1, -1, -1):
-    #     ask = active_asks[i]
-    #     if ask['price'] <= fair_price + MEXC_TICK_SIZE + ask_shift:
-    #         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=ask['order_id'])
-    #         # logger.info(f'removing {i} elements from asks, size: {len(active_asks)}')
-    #         del active_asks[i]
-    #
-    # for i in range(len(active_bids)-1, -1, -1):
-    #     bid = active_bids[i]
-    #     if bid['price'] >= fair_price - MEXC_TICK_SIZE + bid_shift:
-    #         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=bid['order_id'])
-    #         # logger.info(f'removing {i} elements from bids, size: {len(active_bids)}')
-    #         del active_bids[i]
 
 
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift
@@ -181,17 +170,32 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
 
     market_depth = calculate_market_depth(client=mexc_client, percent=percent)
     # print(f'MARKET: {market_depth}')
+    lowest_ask = mexc_orderbook.asks[0].price
+    highest_bid = mexc_orderbook.bids[0].price
+    mid_price = (lowest_ask + highest_bid) / 2
+
+    upper_bound = mid_price * (1 + percent / 100)
+    lower_bound = mid_price * (1 - percent / 100)
+
+    for i in range(0, len(active_asks)):
+        if active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 10000:
+            await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[i]['order_id'])
+            size = Decimal(random.randint(5000, 10000))
+            price = active_asks[i]['price']
+            order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
+            active_asks[i] = {'order_id': order_id, 'price': price, 'size': size}
+
+    for i in range(0, len(active_bids)):
+        if active_bids[i]['price'] < lower_bound and active_bids[i]['size'] < 10000:
+            await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[i]['order_id'])
+            size = Decimal(random.randint(5000, 10000))
+            price = active_bids[i]['price']
+            order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
+            active_bids[i] = {'order_id': order_id, 'price': price, 'size': size}
 
     if market_depth < expected_market_depth:
         how_many_to_add = expected_market_depth - market_depth
         # print(how_many_to_add)
-
-        lowest_ask = mexc_orderbook.asks[0].price
-        highest_bid = mexc_orderbook.bids[0].price
-        mid_price = (lowest_ask + highest_bid) / 2
-
-        upper_bound = mid_price * (1 + percent / 100)
-        lower_bound = mid_price * (1 - percent / 100)
 
         usdt_balance = Decimal(str(mexc_client.get_balance()['USDT']['free']))
         rmv_balance = Decimal(str(mexc_client.get_balance()['RMV']['free']))
@@ -226,8 +230,8 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                     break
                 # logger.info(f'replacing {ask_id} element, size: {len(active_asks)}')
                 active_asks[ask_id] = {'order_id': order_id, 'price': price, 'size': size}
-
                 how_many_to_add_rmv -= sell_size * price
+
             ask_id -= 1
             stopper += 1
 
@@ -248,8 +252,8 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                     break
                 # logger.info(f'replacing {bid_id} element, size: {len(active_bids)}')
                 active_bids[bid_id] = {'order_id': order_id, 'price': price, 'size': size}
-
                 how_many_to_add_usdt -= buy_size * price
+
             bid_id -= 1
             stopper += 1
 
