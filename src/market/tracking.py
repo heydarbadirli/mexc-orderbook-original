@@ -78,14 +78,14 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
 
     for i in range(len(active_asks)-1, -1, -1):
         ask = active_asks[i]
-        if ask['price'] <= fair_price + MEXC_TICK_SIZE + skew:
+        if ask['price'] <= fair_price:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=ask['order_id'])
             # logger.info(f'removing {i} elements from asks, size: {len(active_asks)}')
             del active_asks[i]
 
     for i in range(len(active_bids)-1, -1, -1):
         bid = active_bids[i]
-        if bid['price'] >= fair_price - MEXC_TICK_SIZE + skew:
+        if bid['price'] >= fair_price:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=bid['order_id'])
             # logger.info(f'removing {i} elements from bids, size: {len(active_bids)}')
             del active_bids[i]
