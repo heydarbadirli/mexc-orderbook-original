@@ -57,12 +57,14 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     balances = mexc_client.get_balance()
     full_usdt_balance = balances['USDT']['free'] + balances['USDT']['locked']
     full_rmv_value = (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
-    skew = 0
+    ask_shift =0
+    bid_shift = 0
 
-    # if full_rmv_value - full_usdt_balance > 100:
-    #     skew -= MEXC_TICK_SIZE
-    # elif full_rmv_value - full_usdt_balance < -100:
-    #     skew += MEXC_TICK_SIZE
+    if full_rmv_value - full_usdt_balance > 100:
+        ask_shift -= MEXC_TICK_SIZE
+    elif full_rmv_value - full_usdt_balance < -100:
+        bid_shift += MEXC_TICK_SIZE
+
 
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
@@ -78,21 +80,21 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
 
     for i in range(len(active_asks)-1, -1, -1):
         ask = active_asks[i]
-        if ask['price'] <= fair_price:
+        if ask['price'] <= fair_price + MEXC_TICK_SIZE + ask_shift:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=ask['order_id'])
             # logger.info(f'removing {i} elements from asks, size: {len(active_asks)}')
             del active_asks[i]
 
     for i in range(len(active_bids)-1, -1, -1):
         bid = active_bids[i]
-        if bid['price'] >= fair_price:
+        if bid['price'] >= fair_price - MEXC_TICK_SIZE + bid_shift:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=bid['order_id'])
             # logger.info(f'removing {i} elements from bids, size: {len(active_bids)}')
             del active_bids[i]
 
 
-    act_ask = fair_price + 1 * MEXC_TICK_SIZE + skew
-    act_bid = fair_price - 1 * MEXC_TICK_SIZE + skew
+    act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift
+    act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift
 
     for _ in range(5):
         found = any(d['price'] == act_ask for d in active_asks)
