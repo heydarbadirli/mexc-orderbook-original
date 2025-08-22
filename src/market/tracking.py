@@ -113,7 +113,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
             sell_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='sell',order_type='limit', size=sell_size, price=act_ask)
             if sell_id is None:
                 continue
-            if act_ask > active_asks[len(active_asks) - 1]['price']:
+            if len(active_asks) == 0 or act_ask > active_asks[len(active_asks) - 1]['price']:
                 active_asks.append({'order_id': sell_id, 'price': act_ask, 'size': sell_size})
             else:
                 active_asks.insert(ask_id, {'order_id': sell_id, 'price': act_ask, 'size': sell_size})
@@ -128,7 +128,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
             buy_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='buy',order_type='limit', size=buy_size, price=act_bid)
             if buy_id is None:
                 continue
-            if act_bid < active_bids[len(active_bids) - 1]['price']:
+            if len(active_bids) == 0 or act_bid < active_bids[len(active_bids) - 1]['price']:
                 active_bids.append({'order_id': buy_id, 'price': act_bid, 'size': buy_size})
             else:
                 active_bids.insert(bid_id, {'order_id': buy_id, 'price': act_bid, 'size': buy_size})
