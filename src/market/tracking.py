@@ -32,22 +32,22 @@ async def update_active_orders(data, kucoin_client: KucoinClient, database_clien
     if side == 'sell':
         kucoin_lowest_ask = kucoin_orderbook.asks[0]
 
-        # if price > kucoin_lowest_ask.price * Decimal('1.001'):
-        size = min(size, kucoin_lowest_ask.size)
-        profit = (price - kucoin_lowest_ask.price * Decimal('1.001')) * size
+        if price > kucoin_lowest_ask.price * Decimal('1.001'):
+            size = min(size, kucoin_lowest_ask.size)
+            profit = (price - kucoin_lowest_ask.price * Decimal('1.001')) * size
 
-        # logger.info(f"Arbitrage, profit: {profit}")
+            logger.info(f"Arbitrage, profit: {profit}")
 
         if data['status'] == 2:
             active_asks.pop(0)
     elif side == 'buy':
         kucoin_highest_bid = kucoin_orderbook.bids[0]
 
-        # if price < kucoin_highest_bid.price * Decimal('1.001'):
-        size = min(size, kucoin_highest_bid.size)
-        profit = (price - kucoin_highest_bid.price * Decimal('1.001')) * size
+        if price < kucoin_highest_bid.price * Decimal('1.001'):
+            size = min(size, kucoin_highest_bid.size)
+            profit = (price - kucoin_highest_bid.price * Decimal('1.001')) * size
 
-        # logger.info(f"Arbitrage, profit: {profit}")
+            logger.info(f"Arbitrage, profit: {profit}")
 
         if data['status'] == 2:
             active_bids.pop(0)
@@ -115,7 +115,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
         found = any(d['price'] == act_ask for d in active_asks)
 
         if not found:
-            sell_size = Decimal(random.randint(500, 2000))
+            sell_size = Decimal(random.randint(1000, 2000))
 
             sell_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='sell',order_type='limit', size=sell_size, price=act_ask)
             if sell_id is None:
@@ -130,7 +130,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
         found = any(d['price'] == act_bid for d in active_bids)
 
         if not found:
-            buy_size = Decimal(random.randint(500, 600))
+            buy_size = Decimal(random.randint(1000, 2000))
 
             buy_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='buy',order_type='limit', size=buy_size, price=act_bid)
             if buy_id is None:
@@ -201,17 +201,17 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
     lower_bound = mid_price * (1 - percent / 100)
 
     for i in range(0, len(active_asks)):
-        if active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 10000:
+        if active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 2000:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[i]['order_id'])
-            size = Decimal(random.randint(5000, 10000))
+            size = Decimal(random.randint(1000, 2000))
             price = active_asks[i]['price']
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
             active_asks[i] = {'order_id': order_id, 'price': price, 'size': size}
 
     for i in range(0, len(active_bids)):
-        if active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 10000:
+        if active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 2000:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[i]['order_id'])
-            size = Decimal(random.randint(5000, 10000))
+            size = Decimal(random.randint(1000, 2000))
             price = active_bids[i]['price']
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
             active_bids[i] = {'order_id': order_id, 'price': price, 'size': size}
@@ -239,7 +239,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                 ask_id = len(active_asks) - 1
 
             if 0 <= ask_id and upper_bound >= active_asks[ask_id]['price']:
-                sell_size = Decimal(random.randint(5000, 150000))
+                sell_size = Decimal(random.randint(1000, 2000))
                 size = sell_size + active_asks[ask_id]['size']
                 price = active_asks[ask_id]['price']
 
@@ -260,7 +260,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                 bid_id = len(active_bids) - 1
 
             if 0 <= bid_id and lower_bound <= active_bids[bid_id]['price']:
-                buy_size = Decimal(random.randint(5000, 15000))
+                buy_size = Decimal(random.randint(1000, 2000))
                 size = buy_size + active_bids[bid_id]['size']
                 price = active_bids[bid_id]['price']
 

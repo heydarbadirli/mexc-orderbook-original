@@ -15,15 +15,16 @@ from urllib.parse import urlencode
 
 
 class MexcClient(ExchangeClient):
-    def __init__(self, api_key: str, api_secret: str, on_orderbook_change=None, on_filled_order=None):
+    def __init__(self, api_key: str, api_secret: str, add_to_event_queue=None):
         self.api_key = api_key
         self.api_secret = api_secret
         self.orderbook = OrderBook(asks=[], bids=[])
         self.balances = {}
         self.ws_base_url = "wss://wbs-api.mexc.com/ws"
         self.rest_base_url = "https://api.mexc.com"
-        self.on_orderbook_change = on_orderbook_change
-        self.on_filled_order = on_filled_order
+        # self.on_orderbook_change = on_orderbook_change
+        # self.on_filled_order = on_filled_order
+        self.add_to_event_queue = add_to_event_queue
 
 
     def get_orderbook(self):
@@ -107,7 +108,8 @@ class MexcClient(ExchangeClient):
                             elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2 or data['d']['status'] == 3:
                                 data = data['d']
                                 logger.info(f"tracking orders mexc, data: {data}")
-                                await self.on_filled_order(data=data)
+                                # await self.on_filled_order(data=data)
+                                await self.add_to_event_queue(type="filled order", data=data)
                         except Exception as e:
                             logger.error(f"Error: {e}")
             except Exception as e:
@@ -153,6 +155,7 @@ class MexcClient(ExchangeClient):
                         try:
                             if isinstance(message, str):
                                 continue
+                            # logger.info(f'orderbook update mexc')
 
                             result = PushDataV3ApiWrapper_pb2.PushDataV3ApiWrapper()
                             result.ParseFromString(message)
@@ -164,7 +167,8 @@ class MexcClient(ExchangeClient):
                             bids = [OrderLevel(price=Decimal(str(bid['price'])), size=Decimal(str(bid['quantity']))) for bid in data['bids']]
 
                             self.orderbook = OrderBook(asks=asks, bids=bids)
-                            asyncio.create_task(self.on_orderbook_change())
+                            # asyncio.create_task(self.on_orderbook_change())
+                            await self.add_to_event_queue(type="mexc orderbook update", data="")
                         except Exception as e:
                             logger.error(f"error: {e}")
             except Exception as e:

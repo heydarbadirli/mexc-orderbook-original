@@ -11,6 +11,7 @@ from src.market.calculations import calculate_market_depth, calculate_fair_price
 from loguru import logger
 from src.database.client import DatabaseClient
 
+
 load_dotenv()
 
 getcontext().prec = 6
@@ -25,20 +26,49 @@ mysql_password = os.getenv("MYSQL_PASSWORD")
 EXPECTED_MARKET_DEPTH = Decimal(1000)
 
 order_lock = asyncio.Lock()
+event_queue = asyncio.Queue()
 
-async def on_filled_order(data):
-    await update_active_orders(data=data, kucoin_client=kucoin_client, database_client=database_client)
+async def add_to_event_queue(type: str, data):
 
+    await event_queue.put({'type': type, 'data': data})
 
-async def on_orderbook_change():
-    async with order_lock:
-        await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
-
-async def tmd(): # track market depth
+async def read_from_queue():
     while True:
-        async with order_lock:
-            await track_market_depth(mexc_client=mexc_client, kucoin_client=kucoin_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
-        await asyncio.sleep(0.5)
+        # print(event_queue)
+        # await asyncio.sleep(1)
+        event = await event_queue.get()
+        # print(event)
+        # await asyncio.sleep(0.1)
+
+        try:
+            if event['type'] == "kucoin orderbook update":
+                await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
+            elif event['type'] == "mexc orderbook update":
+                await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
+                await track_market_depth(mexc_client=mexc_client, kucoin_client=kucoin_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
+            elif event['type'] == "filled order":
+                await update_active_orders(data=event['data'], kucoin_client=kucoin_client, database_client=database_client)
+        except Exception as e:
+            logger.error(f"error: {e}")
+
+# async def on_filled_order(data):
+#     await update_active_orders(data=data, kucoin_client=kucoin_client, database_client=database_client)
+
+
+# async def on_orderbook_change():
+#     async with order_lock:
+#         # print("managing orders")
+#         # await asyncio.sleep(1)
+#         await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
+
+
+# async def tmd(): # track market depth
+#     # while True:
+#     #     async with order_lock:
+#     #         print("tracking market depth")
+#     #         await asyncio.sleep(1)
+#     await track_market_depth(mexc_client=mexc_client, kucoin_client=kucoin_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
+#         # await asyncio.sleep(0.1)
 
 # tmd function is running all the time and checking if market depth is ok, if it is not then it add size to our active orders
 
@@ -53,8 +83,8 @@ async def tmd(): # track market depth
 # other functions can run concurrently
 
 
-mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, on_orderbook_change=on_orderbook_change, on_filled_order=on_filled_order)
-kucoin_client = KucoinClient(on_orderbook_change=on_orderbook_change)
+mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, add_to_event_queue=add_to_event_queue)
+kucoin_client = KucoinClient(add_to_event_queue=add_to_event_queue)
 database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysql_password)
 
 
@@ -68,8 +98,12 @@ async def main():
     asyncio.create_task(mexc_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
     asyncio.create_task(kucoin_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
     asyncio.create_task(mexc_client.track_active_orders(listen_key=listen_key))
+    asyncio.create_task(read_from_queue())
 
-    asyncio.create_task(tmd())
+    # while True:
+    #     await asyncio.sleep(1)
+
+    # asyncio.create_task(tmd())
 
     #######################################################################################################################################################
 

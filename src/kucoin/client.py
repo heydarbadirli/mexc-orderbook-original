@@ -8,9 +8,10 @@ import asyncio
 
 
 class KucoinClient(ExchangeClient):
-    def __init__(self, on_orderbook_change=None):
+    def __init__(self, add_to_event_queue=None):
         self.orderbook = OrderBook(asks=[], bids=[])
-        self.on_orderbook_change = on_orderbook_change
+        # self.on_orderbook_change = on_orderbook_change
+        self.add_to_event_queue = add_to_event_queue
 
     def get_orderbook(self):
         return self.orderbook
@@ -51,6 +52,7 @@ class KucoinClient(ExchangeClient):
                         try:
                             # message = await ws.recv()
                             data = json.loads(message)
+                            # logger.info('orderbook update kucoin')
 
                             if data['type'] != "message":
                                 continue
@@ -59,7 +61,8 @@ class KucoinClient(ExchangeClient):
                             bids = [OrderLevel(price=Decimal(str(a[0])), size=Decimal(str(a[1]))) for a in data['data']['bids']]
 
                             self.orderbook = OrderBook(asks=asks, bids=bids)
-                            asyncio.create_task(self.on_orderbook_change())
+                            # asyncio.create_task(self.on_orderbook_change())
+                            await self.add_to_event_queue(type="kucoin orderbook update", data="")
                         except Exception as e:
                             logger.error(f'Exception: {e}')
             except Exception as e:
