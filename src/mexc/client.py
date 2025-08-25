@@ -115,25 +115,25 @@ class MexcClient(ExchangeClient):
                 await asyncio.sleep(5)
 
 
-    async def update_balances(self, listen_key: str):
-        url = self.ws_base_url + f'?listenKey={listen_key}'
-        print(url)
-
-        async with websockets.connect(url) as ws:
-            subscribe_message = {
-                "method": "SUBSCRIPTION",
-                "params": ["spot@private.account.v3.api.pb"]
-            }
-
-            await ws.send(json.dumps(subscribe_message))
-            logger.info(f'Subscribed to mexc balance tracking')
-            while True:
-                try:
-                    raw_data = await ws.recv()
-                    data = json.loads(raw_data)
-                    logger.info(f'Balanced has changed: {data}')
-                except Exception as e:
-                    logger.error(f"Error: {e}")
+    # async def update_balances(self, listen_key: str):
+    #     url = self.ws_base_url + f'?listenKey={listen_key}'
+    #     print(url)
+    #
+    #     async with websockets.connect(url) as ws:
+    #         subscribe_message = {
+    #             "method": "SUBSCRIPTION",
+    #             "params": ["spot@private.account.v3.api.pb"]
+    #         }
+    #
+    #         await ws.send(json.dumps(subscribe_message))
+    #         logger.info(f'Subscribed to mexc balance tracking')
+    #         while True:
+    #             try:
+    #                 raw_data = await ws.recv()
+    #                 data = json.loads(raw_data)
+    #                 logger.info(f'Balanced has changed: {data}')
+    #             except Exception as e:
+    #                 logger.error(f"Error: {e}")
 
 
     async def update_orderbook(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
@@ -283,6 +283,6 @@ class MexcClient(ExchangeClient):
                         for token in data['balances']:
                             if token['asset'] == CryptoCurrency.RMV.value or token['asset'] == CryptoCurrency.USDT.value:
                                 self.balances[token['asset']] = {'free': Decimal(token['free']), 'locked': Decimal(token['locked'])}
-                await asyncio.sleep(1)
+                await asyncio.sleep(10)
             except Exception as e:
                 logger.error(f'error: {e}')

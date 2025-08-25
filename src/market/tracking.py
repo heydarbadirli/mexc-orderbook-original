@@ -52,7 +52,12 @@ async def update_active_orders(data, kucoin_client: KucoinClient, database_clien
         if data['status'] == 2:
             active_bids.pop(0)
 
-# manage_orders
+# manage_orders:
+# it calculates fair price, and basically it places orders +- two mexc tick sizes from fair price
+# it takes inventory balance into account and shifts orders up or down if necessary
+# if we have more than 5 active asks or bids it cancels them
+# if some of our asks/bids price is too low/high it also cancels them
+# it checks 5 levels of prices for bids and asks na if we don't have order on that level, we place it
 
 async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     mexc_orderbook = mexc_client.get_orderbook()
@@ -137,6 +142,8 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
                 bid_id += 1
             act_bid -= MEXC_TICK_SIZE
 
+# track_market_spread
+# it just calculates market spread
 
 async def track_market_spread(mexc_client: MexcClient):
     mexc_orderbook = mexc_client.get_orderbook()
@@ -174,6 +181,10 @@ async def track_market_spread(mexc_client: MexcClient):
     #     percent_spread = (lowest_ask_mexc - highest_bid_mexc) / mid_price * 100
     return percent_spread
 
+# track_market_depth
+# it calculates market depth and if it is below expected_market_depth it add size to our orders
+# first it add to highest asks and lowest bids and so on
+# it also takes into account inventory balance and calculates ration of usdt balance and rmv balance and add more size on the side that we have more currency
 
 async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClient, percent: Decimal, expected_market_depth: Decimal):
     # await asyncio.sleep(1)

@@ -3,6 +3,8 @@ from src.mexc.client import MexcClient
 from src.kucoin.client import KucoinClient
 from src.model import OrderBook, ExchangeClient
 
+# calculate_market_depth:
+# calculates market depth by getting upper price and lower price and adding sizes of orders
 
 def calculate_market_depth(client: ExchangeClient, percent: Decimal):
     orderbook = client.get_orderbook()
@@ -34,6 +36,10 @@ def calculate_market_depth(client: ExchangeClient, percent: Decimal):
     market_depth = (ask_depth + bid_depth) * mid_price
     return market_depth
 
+# calculate_fair_price
+# it calculates fair price using cross exchanges formula
+# takes mid-price from mexc and kucoin and liquidity on both exchanges
+# IT DOES NOT TAKE INTO ACCOUNT our orders
 
 def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, active_bids: list, active_asks: list, percent: Decimal):
     mexc_orderbook = mexc_client.get_orderbook()
