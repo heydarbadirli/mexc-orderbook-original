@@ -38,6 +38,8 @@ async def update_active_orders(data, kucoin_client: KucoinClient, database_clien
 
             logger.info(f"Arbitrage, profit: {profit}")
 
+            # add opposite order
+
         if data['status'] == 2:
             active_asks.pop(0)
     elif side == 'buy':
@@ -48,6 +50,8 @@ async def update_active_orders(data, kucoin_client: KucoinClient, database_clien
             profit = (price - kucoin_highest_bid.price * Decimal('1.001')) * size
 
             logger.info(f"Arbitrage, profit: {profit}")
+
+            # add opposite order
 
         if data['status'] == 2:
             active_bids.pop(0)

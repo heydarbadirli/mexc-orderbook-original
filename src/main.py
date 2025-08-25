@@ -37,6 +37,10 @@ async def read_from_queue():
         # print(event_queue)
         # await asyncio.sleep(1)
         event = await event_queue.get()
+
+        if not event or 'type' not in event:
+            logger.warning("Skipping invalid event: %s", event)
+            continue
         # print(event)
         # await asyncio.sleep(0.1)
 
