@@ -47,9 +47,9 @@ class KucoinClient(ExchangeClient):
                     await ws.send(json.dumps(subscribe_message))
                     logger.info(f"Subscribed to topic {first_currency.value + second_currency.value}, KUCOIN")
 
-                    while True:
+                    async for message in ws:
                         try:
-                            message = await ws.recv()
+                            # message = await ws.recv()
                             data = json.loads(message)
 
                             if data['type'] != "message":
@@ -64,3 +64,4 @@ class KucoinClient(ExchangeClient):
                             logger.error(f'Exception: {e}')
             except Exception as e:
                 logger.error(f"Error: {e}")
+                await asyncio.sleep(5)

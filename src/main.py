@@ -2,14 +2,14 @@ import asyncio
 import os
 from dotenv import load_dotenv
 from decimal import Decimal, getcontext
-
-from src import mexc
+from datetime import datetime
 from src.mexc.client import MexcClient
-from src.model import CryptoCurrency, OrderBook
+from src.model import CryptoCurrency, OrderBook, DatabaseMarketState, DatabaseOrder
 from src.kucoin.client import KucoinClient
 from src.market.tracking import update_active_orders, manage_orders, track_market_spread, track_market_depth
 from src.market.calculations import calculate_market_depth, calculate_fair_price
 from loguru import logger
+from src.database.client import DatabaseClient
 
 load_dotenv()
 
@@ -18,12 +18,16 @@ getcontext().prec = 6
 api_key_mexc = os.getenv("API_KEY_MEXC")
 api_secret_mexc = os.getenv("API_SECRET_MEXC")
 
+mysql_host = os.getenv("MYSQL_HOST")
+mysql_user = os.getenv("MYSQL_USER")
+mysql_password = os.getenv("MYSQL_PASSWORD")
+
 EXPECTED_MARKET_DEPTH = Decimal(1000)
 
 order_lock = asyncio.Lock()
 
-def on_filled_order(data):
-    update_active_orders(data=data, kucoin_client=kucoin_client)
+async def on_filled_order(data):
+    await update_active_orders(data=data, kucoin_client=kucoin_client, database_client=database_client)
 
 
 async def on_orderbook_change():
@@ -55,10 +59,12 @@ async def tmd():
 
 mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, on_orderbook_change=on_orderbook_change, on_filled_order=on_filled_order)
 kucoin_client = KucoinClient(on_orderbook_change=on_orderbook_change)
+database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysql_password)
 
 
 async def main():
     await mexc_client.cancel_all_orders()
+    await database_client.connect()
 
     ready_event = asyncio.Event()
     asyncio.create_task(mexc_client.update_balance(ready_event=ready_event))
@@ -74,7 +80,7 @@ async def main():
     asyncio.create_task(tmd())
 
     while True:
-        await asyncio.sleep(120)
+        await asyncio.sleep(60)
         balances = mexc_client.get_balance()
 
         market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
@@ -93,6 +99,12 @@ async def main():
         logger.info(f"rmv locked balance: {balances['RMV']['locked']} RMV, approximate usd value: {balances['RMV']['locked'] * fair_price}")
         full_account_balance = balances['USDT']['free'] + balances['USDT']['locked'] + balances['RMV']['free'] * fair_price + balances['RMV']['locked'] * fair_price
         logger.info(f"full_account_balance: {full_account_balance}\n")
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=balances['USDT']['free'] + balances['USDT']['locked'], rmv_balance=balances['RMV']['free'] + balances['RMV']['locked'], rmv_value=balances['RMV']['free'] * fair_price + balances['RMV']['locked'] * fair_price, timestamp=timestamp)
+        await database_client.record_market_state(market_state=market_state)
+
+
 
     # mexc_client.cancel_all_orders()
 

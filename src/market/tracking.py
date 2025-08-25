@@ -1,10 +1,12 @@
 from decimal import Decimal
-from src.model import CryptoCurrency
+from src.model import CryptoCurrency, DatabaseOrder
 from src.mexc.client import MexcClient
 from src.kucoin.client import KucoinClient
 import random
 import asyncio
 from src.market.calculations import calculate_fair_price, calculate_market_depth
+from src.database.client import DatabaseClient
+from datetime import datetime
 from loguru import logger
 
 active_asks = []
@@ -17,11 +19,16 @@ order_lock = asyncio.Lock()
 amount_bought = 0
 amount_sold = 0
 
-def update_active_orders(data, kucoin_client: KucoinClient):
+async def update_active_orders(data, kucoin_client: KucoinClient, database_client: DatabaseClient):
     side = 'buy' if data['tradeType'] == 1 else 'sell'
     size = Decimal(str(data['singleDealQuantity']))
     price = Decimal(str(data['singleDealPrice']))
     kucoin_orderbook = kucoin_client.get_orderbook()
+    pair = 'RMV-USDT'
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    order = DatabaseOrder(pair=pair, side=side, price=price, size=size, timestamp=timestamp)
+    await database_client.record_order(order)
 
     if side == 'sell':
         kucoin_lowest_ask = kucoin_orderbook.asks[0]
@@ -48,8 +55,16 @@ def update_active_orders(data, kucoin_client: KucoinClient):
 
 
 async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
-    # logger.info(f'active asks: {active_asks}')
-    # logger.info(f'active bids: {active_bids}')
+    # print('asks', end=': ')
+    # for ask in active_asks:
+    #     print(ask['price'], end=' ')
+    # print()
+    # print('bids', end=': ')
+    # for bid in active_bids:
+    #     print(bid['price'], end=' ')
+    # print()
+    # print()
+
     mexc_orderbook = mexc_client.get_orderbook()
     kucoin_orderbook = kucoin_client.get_orderbook()
 
@@ -62,9 +77,17 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     ask_shift =0
     bid_shift = 0
 
-    if full_rmv_value - full_usdt_balance > 100:
+    if full_rmv_value - full_usdt_balance > 500:
+        ask_shift -= 2 * MEXC_TICK_SIZE
+        bid_shift -= 2 * MEXC_TICK_SIZE
+    elif full_rmv_value - full_usdt_balance < -500:
+        bid_shift += 2 * MEXC_TICK_SIZE
+        ask_shift += 2 * MEXC_TICK_SIZE
+    elif full_rmv_value - full_usdt_balance > 100:
         ask_shift -= MEXC_TICK_SIZE
+        bid_shift -= MEXC_TICK_SIZE
     elif full_rmv_value - full_usdt_balance < -100:
+        ask_shift += MEXC_TICK_SIZE
         bid_shift += MEXC_TICK_SIZE
 
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
@@ -101,7 +124,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
 
             sell_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='sell',order_type='limit', size=sell_size, price=act_ask)
             if sell_id is None:
-                continue
+                break
             if len(active_asks) == 0 or act_ask > active_asks[len(active_asks) - 1]['price']:
                 active_asks.append({'order_id': sell_id, 'price': act_ask, 'size': sell_size})
             else:
@@ -112,11 +135,11 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
         found = any(d['price'] == act_bid for d in active_bids)
 
         if not found:
-            buy_size = Decimal(random.randint(500, 2000))
+            buy_size = Decimal(random.randint(500, 600))
 
             buy_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='buy',order_type='limit', size=buy_size, price=act_bid)
             if buy_id is None:
-                continue
+                break
             if len(active_bids) == 0 or act_bid < active_bids[len(active_bids) - 1]['price']:
                 active_bids.append({'order_id': buy_id, 'price': act_bid, 'size': buy_size})
             else:
@@ -128,8 +151,8 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
 async def track_market_spread(mexc_client: MexcClient):
     mexc_orderbook = mexc_client.get_orderbook()
 
-    if len(mexc_orderbook.asks) == 0 or len(active_bids) == 0 or len(active_asks) == 0:
-        return -1
+    # if len(mexc_orderbook.asks) == 0 or len(active_bids) == 0 or len(active_asks) == 0:
+    #     return -1
 
     lowest_ask_mexc = mexc_orderbook.asks[0].price
     highest_bid_mexc = mexc_orderbook.bids[0].price
@@ -201,6 +224,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
         rmv_balance = Decimal(str(mexc_client.get_balance()['RMV']['free']))
         rmv_value = mid_price * rmv_balance
         # print(usdt_balance, rmv_value)
+        usdt_balance = 0
 
         if rmv_value > usdt_balance:
             ratio = usdt_balance / rmv_value

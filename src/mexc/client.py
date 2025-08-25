@@ -109,7 +109,7 @@ class MexcClient(ExchangeClient):
                     elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2 or data['d']['status'] == 3:
                         data = data['d']
                         logger.info(f"tracking orders mexc, data: {data}")
-                        self.on_filled_order(data=data)
+                        await self.on_filled_order(data=data)
                 except Exception as e:
                     logger.error(f"Error: {e}")
 
@@ -163,9 +163,8 @@ class MexcClient(ExchangeClient):
                     await ws.send(json.dumps(subscribe_message))
                     logger.info(f'Subscribed to topic, MEXC')
 
-                    while True:
+                    async for message in ws:
                         try:
-                            message = await ws.recv()
                             if isinstance(message, str):
                                 continue
 
@@ -184,6 +183,7 @@ class MexcClient(ExchangeClient):
                             logger.error(f"error: {e}")
             except Exception as e:
                 logger.error(f'WebSocket connection error: {e}')
+                await asyncio.sleep(5)
 
 
     async def place_limit_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, side: str, order_type: str, size: Decimal, price: Decimal):
@@ -236,8 +236,7 @@ class MexcClient(ExchangeClient):
         }
 
         query_string = urlencode(params)
-        signature = hmac.new(self.api_secret.encode('utf-8'), query_string.encode('utf-8'),
-                             hashlib.sha256).hexdigest()
+        signature = hmac.new(self.api_secret.encode('utf-8'), query_string.encode('utf-8'),hashlib.sha256).hexdigest()
         params['signature'] = signature
 
         async with aiohttp.ClientSession() as session:
