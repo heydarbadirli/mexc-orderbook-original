@@ -37,7 +37,6 @@ class MexcClient(ExchangeClient):
 
 
     async def create_listen_key(self):
-        # url = 'https://api.mexc.com/api/v3/userDataStream'
         url = self.rest_base_url + '/api/v3/userDataStream'
 
         timestamp = str(int(time.time() * 1000))
@@ -63,7 +62,6 @@ class MexcClient(ExchangeClient):
     async def extend_listen_key(self, listen_key):
         while True:
             await asyncio.sleep(30 * 60)
-            # url = 'https://api.mexc.com/api/v3/userDataStream'
             url = self.rest_base_url + '/api/v3/userDataStream'
 
             timestamp = str(int(time.time() * 1000))
@@ -89,7 +87,6 @@ class MexcClient(ExchangeClient):
 
     async def track_active_orders(self, listen_key: str):
         url = f"wss://wbs.mexc.com/ws?listenKey={listen_key}"
-        # url = self.ws_base_url + f'?listenKey={listen_key}'
 
         async with websockets.connect(url) as ws:
             subscribe_message = {
@@ -114,41 +111,26 @@ class MexcClient(ExchangeClient):
                     logger.error(f"Error: {e}")
 
 
-    # async def update_balances(self, listen_key: str):
-    #     # url = f"wss://wbs-api.mexc.com/ws?listenKey={listen_key}"
-    #     url = self.ws_base_url + f'?listenKey={listen_key}'
-    #     print(url)
-    #
-    #     async with websockets.connect(url) as ws:
-    #         subscribe_message = {
-    #             "method": "SUBSCRIPTION",
-    #             "params": ["spot@private.account.v3.api.pb"]
-    #         }
-    #
-    #         await ws.send(json.dumps(subscribe_message))
-    #         logger.info(f'Subscribed to mexc balance tracking')
-    #         while True:
-    #             try:
-    #                 raw_data = await ws.recv()
-    #                 data = json.loads(raw_data)
-    #                 logger.info(f'Balanced has changed: {data}')
-    #             except Exception as e:
-    #                 logger.error(f"Error: {e}")
+    async def update_balances(self, listen_key: str):
+        url = self.ws_base_url + f'?listenKey={listen_key}'
+        print(url)
 
-    # async def _get_orderbook_snapshot(self, first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT):
-    #     symbol = first_currency.value + second_currency.value
-    #
-    #     url = self.rest_base_url + f'/api/v3/depth?symbol={symbol}&limit=1000'
-    #     print(url)
-    #     url = 'https://api.mexc.com/api/v3/depth?symbol=MXBTC&limit=1000'
-    #     url = 'https://api.mexc.com/api/v3/depth?symbol=RMVUSDT&limit=1000'
-    #
-    #     async with aiohttp.ClientSession() as session:
-    #         async with session.get(url) as response:
-    #             print(response.status)
-    #             if response.status == 200:
-    #                 data = await response.json()
-    #                 print(data)
+        async with websockets.connect(url) as ws:
+            subscribe_message = {
+                "method": "SUBSCRIPTION",
+                "params": ["spot@private.account.v3.api.pb"]
+            }
+
+            await ws.send(json.dumps(subscribe_message))
+            logger.info(f'Subscribed to mexc balance tracking')
+            while True:
+                try:
+                    raw_data = await ws.recv()
+                    data = json.loads(raw_data)
+                    logger.info(f'Balanced has changed: {data}')
+                except Exception as e:
+                    logger.error(f"Error: {e}")
+
 
     async def update_orderbook(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
         symbol = first_currency.value + second_currency.value
@@ -188,7 +170,6 @@ class MexcClient(ExchangeClient):
 
     async def place_limit_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, side: str, order_type: str, size: Decimal, price: Decimal):
         symbol = first_currency.value + second_currency.value
-        # url = "https://api.mexc.com/api/v3/order"
         url = self.rest_base_url + '/api/v3/order'
 
         timestamp = str(int(time.time() * 1000))
@@ -247,7 +228,6 @@ class MexcClient(ExchangeClient):
                 #     logger.info(f"Order was cancelled on MEXC, id: {order_id}, data: {data}")
 
     async def cancel_all_orders(self):
-        # url = 'https://api.mexc.com/api/v3/openOrders'
         base_url = 'https://api.mexc.com'
         timestamp = round(time.time() * 1000)
         params = {
@@ -257,7 +237,6 @@ class MexcClient(ExchangeClient):
         }
 
         query_string = '&'.join([f'{key}={params[key]}' for key in sorted(params.keys())])
-        # signature = hmac.new(self.api_secret.encode(), data.encode(), hashlib.sha256).hexdigest()
         signature = self.get_signature(query_string=query_string)
         # query_string += f'&signature={signature}'
 
@@ -274,12 +253,11 @@ class MexcClient(ExchangeClient):
             logger.error(response.status_code, response.text)
 
 
-    async def update_balance(self, ready_event: asyncio.Event):
+    async def update_balance(self):
         while True:
             try:
                 timestamp = str(int(time.time() * 1000))
                 query_string = f'api_key={self.api_key}&timestamp={timestamp}'
-                # signature = hmac.new(self.api_secret.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest().upper()
                 signature = self.get_signature(query_string=query_string)
 
                 url = 'https://api.mexc.com/api/v3/account'
@@ -301,7 +279,6 @@ class MexcClient(ExchangeClient):
                         for token in data['balances']:
                             if token['asset'] == CryptoCurrency.RMV.value or token['asset'] == CryptoCurrency.USDT.value:
                                 self.balances[token['asset']] = {'free': Decimal(token['free']), 'locked': Decimal(token['locked'])}
-                ready_event.set()
                 await asyncio.sleep(1)
             except Exception as e:
                 logger.error(f'error: {e}')

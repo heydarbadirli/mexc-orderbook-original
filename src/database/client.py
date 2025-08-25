@@ -2,7 +2,6 @@ from loguru import logger
 from src.model import DatabaseOrder, DatabaseMarketState
 import aiomysql
 
-
 class DatabaseClient:
     def __init__(self, host, user, password):
         self.host = host

@@ -33,28 +33,24 @@ async def on_filled_order(data):
 async def on_orderbook_change():
     async with order_lock:
         await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
-#     # print("orderbook has changed")
-#     mexc_orderbook = mexc_client.get_orderbook()
-#     kucoin_orderbook = kucoin_client.get_orderbook()
-#     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
-#         return
 
-# async def afo():
-#     while True:
-#         async with order_lock:
-#             await add_fair_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
-#         await asyncio.sleep(0.5)
-
-# async def tms():
-#     while True:
-#         await asyncio.sleep(10)
-#         await track_market_spread(mexc_client=mexc_client)
-
-async def tmd():
+async def tmd(): # track market depth
     while True:
         async with order_lock:
             await track_market_depth(mexc_client=mexc_client, kucoin_client=kucoin_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
         await asyncio.sleep(0.5)
+
+# tmd function is running all the time and checking if market depth is ok, if it is not then it add size to our active orders
+
+# there are two update_orderbook functions, one in mexc_client and one in kucoin_client
+# update_orderbook function is running all the time and if something change, then it invoke on_orderbook_change function which invokes manage_orders function which add new orders, and check
+# if we should cancel some of our active orders
+
+# track_active_orders function is running all the time and if some of our orders is filled (can be partially filled) it invokes on_filled_order function which add this order to database
+# and remove it from our list (there are two lists in tracking.py, active_bids and active_asks)
+
+# tmd function and manage_orders function can't work in the same time because they change the same list (active_bids or active_asks) and that often cause conflicts
+# other functions can run concurrently
 
 
 mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, on_orderbook_change=on_orderbook_change, on_filled_order=on_filled_order)
@@ -66,18 +62,16 @@ async def main():
     await mexc_client.cancel_all_orders()
     await database_client.connect()
 
-    ready_event = asyncio.Event()
-    asyncio.create_task(mexc_client.update_balance(ready_event=ready_event))
-    await ready_event.wait()
+    asyncio.create_task(mexc_client.update_balance())
 
     listen_key = await mexc_client.create_listen_key()
     asyncio.create_task(mexc_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
     asyncio.create_task(kucoin_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
     asyncio.create_task(mexc_client.track_active_orders(listen_key=listen_key))
 
-
-    # asyncio.create_task(afo())
     asyncio.create_task(tmd())
+
+    #########################################################################################################################################################
 
     while True:
         await asyncio.sleep(60)
@@ -105,16 +99,5 @@ async def main():
         await database_client.record_market_state(market_state=market_state)
 
 
-
-    # mexc_client.cancel_all_orders()
-
-    # while True:
-    #     await asyncio.sleep(1)
-    #     print(mexc_client.get_balance()['USDT'])
-
-    # await mexc_client._get_orderbook_snapshot(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT)
-
 if __name__ == '__main__':
     asyncio.run(main())
-
-# add skewing, look at the balance, make event queue
