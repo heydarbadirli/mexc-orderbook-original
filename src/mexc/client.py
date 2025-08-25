@@ -88,27 +88,31 @@ class MexcClient(ExchangeClient):
     async def track_active_orders(self, listen_key: str):
         url = f"wss://wbs.mexc.com/ws?listenKey={listen_key}"
 
-        async with websockets.connect(url) as ws:
-            subscribe_message = {
-                "method": "SUBSCRIPTION",
-                "params": ["spot@private.orders"]
-            }
+        while True:
+            try:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=20) as ws:
+                    subscribe_message = {
+                        "method": "SUBSCRIPTION",
+                        "params": ["spot@private.orders"]
+                    }
 
-            await ws.send(json.dumps(subscribe_message))
+                    await ws.send(json.dumps(subscribe_message))
 
-            while True:
-                try:
-                    raw_data = await ws.recv()
-                    data = json.loads(raw_data)
+                    async for message in ws:
+                        try:
+                            data = json.loads(message)
 
-                    if 'msg' in data and data['msg'] == "spot@private.orders":
-                        logger.info("Subscribed to MEXC order tracking")
-                    elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2 or data['d']['status'] == 3:
-                        data = data['d']
-                        logger.info(f"tracking orders mexc, data: {data}")
-                        await self.on_filled_order(data=data)
-                except Exception as e:
-                    logger.error(f"Error: {e}")
+                            if 'msg' in data and data['msg'] == "spot@private.orders":
+                                logger.info("Subscribed to MEXC order tracking")
+                            elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2 or data['d']['status'] == 3:
+                                data = data['d']
+                                logger.info(f"tracking orders mexc, data: {data}")
+                                await self.on_filled_order(data=data)
+                        except Exception as e:
+                            logger.error(f"Error: {e}")
+            except Exception as e:
+                logger.error(f"Error: {e}")
+                await asyncio.sleep(5)
 
 
     async def update_balances(self, listen_key: str):

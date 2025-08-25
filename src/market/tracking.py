@@ -14,10 +14,9 @@ active_bids = []
 
 MEXC_TICK_SIZE = Decimal("0.00001")
 
-order_lock = asyncio.Lock()
-
-amount_bought = 0
-amount_sold = 0
+# update_active_orders:
+# if we have just sold, we delete from active_asks
+# if we have just bought, we delete from active_bids
 
 async def update_active_orders(data, kucoin_client: KucoinClient, database_client: DatabaseClient):
     side = 'buy' if data['tradeType'] == 1 else 'sell'
@@ -53,6 +52,7 @@ async def update_active_orders(data, kucoin_client: KucoinClient, database_clien
         if data['status'] == 2:
             active_bids.pop(0)
 
+# manage_orders
 
 async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     mexc_orderbook = mexc_client.get_orderbook()
