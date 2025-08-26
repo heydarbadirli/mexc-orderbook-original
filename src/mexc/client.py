@@ -1,4 +1,4 @@
-from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient
+from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient, EventType, QueueEvent
 import websockets
 from src.mexc.websocket_proto import PushDataV3ApiWrapper_pb2
 from google.protobuf.json_format import MessageToDict
@@ -108,8 +108,8 @@ class MexcClient(ExchangeClient):
                             elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2 or data['d']['status'] == 3:
                                 data = data['d']
                                 logger.info(f"tracking orders mexc, data: {data}")
-                                # await self.on_filled_order(data=data)
-                                await self.add_to_event_queue(type="filled order", data=data)
+                                event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
+                                await self.add_to_event_queue(event=event)
                         except Exception as e:
                             logger.error(f"Error: {e}")
 
@@ -120,27 +120,6 @@ class MexcClient(ExchangeClient):
             except Exception as e:
                 logger.error(f"Error: {e}")
                 await asyncio.sleep(5)
-
-
-    # async def update_balances(self, listen_key: str):
-    #     url = self.ws_base_url + f'?listenKey={listen_key}'
-    #     print(url)
-    #
-    #     async with websockets.connect(url) as ws:
-    #         subscribe_message = {
-    #             "method": "SUBSCRIPTION",
-    #             "params": ["spot@private.account.v3.api.pb"]
-    #         }
-    #
-    #         await ws.send(json.dumps(subscribe_message))
-    #         logger.info(f'Subscribed to mexc balance tracking')
-    #         while True:
-    #             try:
-    #                 raw_data = await ws.recv()
-    #                 data = json.loads(raw_data)
-    #                 logger.info(f'Balanced has changed: {data}')
-    #             except Exception as e:
-    #                 logger.error(f"Error: {e}")
 
 
     async def update_orderbook(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
@@ -175,7 +154,8 @@ class MexcClient(ExchangeClient):
                                 continue
 
                             self.orderbook = OrderBook(asks=asks, bids=bids)
-                            await self.add_to_event_queue(type="mexc orderbook update", data="")
+                            event = QueueEvent(type=EventType.MEXC_ORDERBOOK_UPDATE, data=data)
+                            await self.add_to_event_queue(event=event)
                         except Exception as e:
                             logger.error(f"error: {e}")
             except Exception as e:

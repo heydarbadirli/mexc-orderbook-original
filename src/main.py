@@ -4,13 +4,14 @@ from dotenv import load_dotenv
 from decimal import Decimal, getcontext
 from datetime import datetime
 from src.mexc.client import MexcClient
-from src.model import CryptoCurrency, OrderBook, DatabaseMarketState, DatabaseOrder
+from src.model import CryptoCurrency, OrderBook, DatabaseMarketState, DatabaseOrder, QueueEvent, EventType
 from src.kucoin.client import KucoinClient
 from src.market.tracking import update_active_orders, manage_orders, track_market_spread, track_market_depth, record_our_orders
 from src.market.calculations import calculate_market_depth, calculate_fair_price
 from loguru import logger
 from src.database.client import DatabaseClient
 import signal
+from typing import Dict
 
 load_dotenv()
 
@@ -26,54 +27,29 @@ mysql_password = os.getenv("MYSQL_PASSWORD")
 EXPECTED_MARKET_DEPTH = Decimal(1000)
 
 order_lock = asyncio.Lock()
-event_queue = asyncio.Queue()
+event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
 
-async def add_to_event_queue(type: str, data):
-    await event_queue.put({'type': type, 'data': data})
+async def add_to_event_queue(event: QueueEvent):
+    await event_queue.put(event)
 
 async def read_from_queue():
     while True:
-        # print(event_queue)
-        # await asyncio.sleep(1)
         event = await event_queue.get()
 
-        if not event or 'type' not in event:
+        if not event or event.type is None:
             logger.warning("Skipping invalid event: %s", event)
             continue
-        # print(event)
-        # await asyncio.sleep(0.1)
 
         try:
-            if event['type'] == "kucoin orderbook update":
+            if event.type == EventType.KUCOIN_ORDERBOOK_UPDATE:
                 await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
-            elif event['type'] == "mexc orderbook update":
+            elif event.type == EventType.MEXC_ORDERBOOK_UPDATE:
                 await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
                 await track_market_depth(mexc_client=mexc_client, kucoin_client=kucoin_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
-            elif event['type'] == "filled order":
+            elif event.type == EventType.FILLED_ORDER:
                 await update_active_orders(data=event['data'], kucoin_client=kucoin_client, database_client=database_client)
         except Exception as e:
             logger.error(f"error: {e}")
-
-# async def on_filled_order(data):
-#     await update_active_orders(data=data, kucoin_client=kucoin_client, database_client=database_client)
-
-
-# async def on_orderbook_change():
-#     async with order_lock:
-#         # print("managing orders")
-#         # await asyncio.sleep(1)
-#         await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
-
-
-# async def tmd(): # track market depth
-#     # while True:
-#     #     async with order_lock:
-#     #         print("tracking market depth")
-#     #         await asyncio.sleep(1)
-#     await track_market_depth(mexc_client=mexc_client, kucoin_client=kucoin_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
-#         # await asyncio.sleep(0.1)
-
-# tmd function is running all the time and checking if market depth is ok, if it is not then it add size to our active orders
 
 # there are two update_orderbook functions, one in mexc_client and one in kucoin_client
 # update_orderbook function is running all the time and if something change, then it invoke on_orderbook_change function which invokes manage_orders function which add new orders, and check

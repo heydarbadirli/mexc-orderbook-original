@@ -2,7 +2,7 @@ import websockets
 import http.client
 import json
 from loguru import logger
-from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient
+from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient, EventType, QueueEvent
 from decimal import Decimal
 import asyncio
 import aiohttp
@@ -72,7 +72,8 @@ class KucoinClient(ExchangeClient):
                                 continue
 
                             self.orderbook = OrderBook(asks=asks, bids=bids)
-                            await self.add_to_event_queue(type="kucoin orderbook update", data="")
+                            event = QueueEvent(type=EventType.KUCOIN_ORDERBOOK_UPDATE, data=data)
+                            await self.add_to_event_queue(event=event)
                         except Exception as e:
                             logger.error(f'Exception: {e}')
             except Exception as e:
