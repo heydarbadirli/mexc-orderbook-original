@@ -22,16 +22,16 @@ class MexcClient(ExchangeClient):
         self.balances = {}
         self.ws_base_url = "wss://wbs-api.mexc.com/ws"
         self.rest_base_url = "https://api.mexc.com"
-        # self.on_orderbook_change = on_orderbook_change
-        # self.on_filled_order = on_filled_order
         self.add_to_event_queue = add_to_event_queue
 
 
     def get_orderbook(self):
         return self.orderbook
 
+
     def get_balance(self):
         return self.balances
+
 
     def get_signature(self, query_string: str):
         return hmac.new(self.api_secret.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest()
@@ -139,7 +139,6 @@ class MexcClient(ExchangeClient):
                         try:
                             if isinstance(message, str):
                                 continue
-                            # logger.info(f'orderbook update mexc')
 
                             result = PushDataV3ApiWrapper_pb2.PushDataV3ApiWrapper()
                             result.ParseFromString(message)
@@ -179,7 +178,6 @@ class MexcClient(ExchangeClient):
 
         query_string = "&".join([f"{key}={params[key]}" for key in sorted(params.keys())])
 
-        # signature = hmac.new(self.api_secret.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest()
         signature = self.get_signature(query_string=query_string)
         query_string += f'&signature={signature}'
 
@@ -199,7 +197,6 @@ class MexcClient(ExchangeClient):
 
     async def cancel_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, order_id: str):
         symbol = first_currency.value + second_currency.value
-        # url = 'https://api.mexc.com/api/v3/order'
         url = self.rest_base_url + '/api/v3/order'
 
         timestamp = str(int(time.time() * 1000))

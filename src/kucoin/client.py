@@ -15,14 +15,19 @@ import hashlib
 class KucoinClient(ExchangeClient):
     def __init__(self, add_to_event_queue=None):
         self.orderbook = OrderBook(asks=[], bids=[])
-        # self.on_orderbook_change = on_orderbook_change
+        self.balances = {}
         self.add_to_event_queue = add_to_event_queue
         self.api_secret = ""
         self.api_passphrase = ""
         self.api_key = ""
 
+
     def get_orderbook(self):
         return self.orderbook
+
+
+    def get_balance(self):
+        return self.balances
 
 
     @staticmethod
@@ -80,6 +85,7 @@ class KucoinClient(ExchangeClient):
                 logger.error(f"Error: {e}")
                 await asyncio.sleep(5)
 
+
     def _get_headers(self, method, endpoint, body=''):
         now = str(int(time.time() * 1000))
         str_to_sign = now + method + endpoint + body
@@ -100,8 +106,27 @@ class KucoinClient(ExchangeClient):
             "KC-API-KEY-VERSION": "2",
             "Content-Type": "application/json"
         }
-
         return headers
+
+
+    async def update_balances(self):
+        while True:
+            endpoint = "/api/v1/accounts"
+            method = "GET"
+            body = ''
+
+            headers = self._get_headers(method=method, endpoint=endpoint, body=body)
+            url = "https://api.kucoin.com/api/v1/accounts"
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers) as response:
+                    data = await response.json()
+
+                    for token in data['data']:
+                        if token['currency'] == CryptoCurrency.RMV.value or token['currency'] == CryptoCurrency.USDT.value:
+                            self.balances[token['currency']] = Decimal(token['balance'])
+            await asyncio.sleep(10)
+
 
     async def place_limit_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, side: str, order_type: str, size: Decimal, price: Decimal):
         symbol = first_currency.value + '-' + second_currency.value

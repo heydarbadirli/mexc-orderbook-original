@@ -28,6 +28,12 @@ EXPECTED_MARKET_DEPTH = Decimal(1000)
 order_lock = asyncio.Lock()
 event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
 
+# there is event queue which is queue where functions puts event that are important for keeping orders with correct price and for keeping market depth
+# there are two functions that that update orderbook: one updates kucoin_orderbook (kucoin_client.update_orderbook) and the other one updates mexc_orderbook (mexc_client.update_orderbook)
+# when orderbook change they put event to queue
+# there is function that tracks our active orders and when some order is filled it put event on the queue
+# read_from_queue() is running all the time and in case of each type of event, invoke different function
+
 async def add_to_event_queue(event: QueueEvent):
     await event_queue.put(event)
 
@@ -50,16 +56,8 @@ async def read_from_queue():
         except Exception as e:
             logger.error(f"error: {e}")
 
-# there are two update_orderbook functions, one in mexc_client and one in kucoin_client
-# update_orderbook function is running all the time and if something change, then it invoke on_orderbook_change function which invokes manage_orders function which add new orders, and check
-# if we should cancel some of our active orders
 
-# track_active_orders function is running all the time and if some of our orders is filled (can be partially filled) it invokes on_filled_order function which add this order to database
-# and remove it from our list (there are two lists in tracking.py, active_bids and active_asks)
-
-# tmd function and manage_orders function can't work in the same time because they change the same list (active_bids or active_asks) and that often cause conflicts
-# other functions can run concurrently
-
+# handle exit cancels all our active orders when the program ends
 
 def handle_exit(sig, frame):
     asyncio.get_event_loop().create_task(cancel_orders_and_exit())
@@ -74,12 +72,15 @@ async def cancel_orders_and_exit():
 
 signal.signal(signal.SIGINT, handle_exit)
 
+
 mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, add_to_event_queue=add_to_event_queue)
 kucoin_client = KucoinClient(add_to_event_queue=add_to_event_queue)
 database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysql_password)
 
 
 async def main():
+    # all of this run concurrently
+
     await mexc_client.cancel_all_orders()
     await database_client.connect()
 
@@ -92,9 +93,6 @@ async def main():
     asyncio.create_task(mexc_client.track_active_orders(listen_key=listen_key))
     asyncio.create_task(read_from_queue())
 
-    # asyncio.create_task(tmd())
-
-    #######################################################################################################################################################
 
     while True:
         await asyncio.sleep(60)

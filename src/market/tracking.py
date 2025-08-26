@@ -14,9 +14,6 @@ active_bids = []
 
 MEXC_TICK_SIZE = Decimal("0.00001")
 
-# update_active_orders:
-# if we have just sold, we delete from active_asks
-# if we have just bought, we delete from active_bids
 
 async def record_our_orders(timestamp: str, database_client: DatabaseClient):
     bids = [OrderLevel(price=bid['price'], size=bid['size']) for bid in active_bids]
@@ -24,6 +21,10 @@ async def record_our_orders(timestamp: str, database_client: DatabaseClient):
 
     temp_orderbook = OrderBook(asks=asks, bids=bids)
     await database_client.record_orderbook(table="our_orders", exchange="None", orderbook=temp_orderbook, timestamp=timestamp)
+
+# update_active_orders:
+# if we have just sold, we delete from active_asks
+# if we have just bought, we delete from active_bids
 
 async def update_active_orders(data, kucoin_client: KucoinClient, database_client: DatabaseClient):
     side = 'buy' if data['tradeType'] == 1 else 'sell'
