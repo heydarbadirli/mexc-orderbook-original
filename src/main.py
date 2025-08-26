@@ -19,6 +19,10 @@ getcontext().prec = 6
 api_key_mexc = os.getenv("API_KEY_MEXC")
 api_secret_mexc = os.getenv("API_SECRET_MEXC")
 
+api_key_kucoin = os.getenv("API_KEY_KUCOIN")
+api_secret_kucoin = os.getenv("API_SECRET_KUCOIN")
+api_passphrase_kucoin = os.getenv("API_PASSPHRASE_KUCOIN")
+
 mysql_host = os.getenv("MYSQL_HOST")
 mysql_user = os.getenv("MYSQL_USER")
 mysql_password = os.getenv("MYSQL_PASSWORD")
@@ -74,7 +78,7 @@ signal.signal(signal.SIGINT, handle_exit)
 
 
 mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, add_to_event_queue=add_to_event_queue)
-kucoin_client = KucoinClient(add_to_event_queue=add_to_event_queue)
+kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoin, api_passphrase=api_passphrase_kucoin, add_to_event_queue=add_to_event_queue)
 database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysql_password)
 
 

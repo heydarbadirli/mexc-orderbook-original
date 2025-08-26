@@ -149,7 +149,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
             else:
                 active_asks.insert(ask_id, {'order_id': sell_id, 'price': act_ask, 'size': sell_size})
                 ask_id += 1
-            act_ask += MEXC_TICK_SIZE
+        act_ask += MEXC_TICK_SIZE
 
         found = any(d['price'] == act_bid for d in active_bids)
 
@@ -164,7 +164,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
             else:
                 active_bids.insert(bid_id, {'order_id': buy_id, 'price': act_bid, 'size': buy_size})
                 bid_id += 1
-            act_bid -= MEXC_TICK_SIZE
+        act_bid -= MEXC_TICK_SIZE
 
 # track_market_spread
 # it just calculates market spread

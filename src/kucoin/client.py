@@ -13,13 +13,13 @@ import hmac
 import hashlib
 
 class KucoinClient(ExchangeClient):
-    def __init__(self, add_to_event_queue=None):
+    def __init__(self, api_key: str, api_secret: str, api_passphrase: str, add_to_event_queue=None):
         self.orderbook = OrderBook(asks=[], bids=[])
         self.balances = {}
         self.add_to_event_queue = add_to_event_queue
-        self.api_secret = ""
-        self.api_passphrase = ""
-        self.api_key = ""
+        self.api_key = api_key
+        self.api_secret = api_secret
+        self.api_passphrase = api_passphrase
 
 
     def get_orderbook(self):
@@ -109,7 +109,7 @@ class KucoinClient(ExchangeClient):
         return headers
 
 
-    async def update_balances(self):
+    async def update_balance(self):
         while True:
             endpoint = "/api/v1/accounts"
             method = "GET"
