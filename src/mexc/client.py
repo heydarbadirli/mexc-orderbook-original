@@ -171,8 +171,10 @@ class MexcClient(ExchangeClient):
                             asks = [OrderLevel(price=Decimal(str(ask['price'])), size=Decimal(str(ask['quantity']))) for ask in data['asks']]
                             bids = [OrderLevel(price=Decimal(str(bid['price'])), size=Decimal(str(bid['quantity']))) for bid in data['bids']]
 
+                            if self.orderbook.asks == asks and self.orderbook.bids == bids:
+                                continue
+
                             self.orderbook = OrderBook(asks=asks, bids=bids)
-                            # asyncio.create_task(self.on_orderbook_change())
                             await self.add_to_event_queue(type="mexc orderbook update", data="")
                         except Exception as e:
                             logger.error(f"error: {e}")

@@ -105,9 +105,6 @@ async def main():
     asyncio.create_task(mexc_client.track_active_orders(listen_key=listen_key))
     asyncio.create_task(read_from_queue())
 
-    # while True:
-    #     await asyncio.sleep(1)
-
     # asyncio.create_task(tmd())
 
     #######################################################################################################################################################
@@ -136,6 +133,10 @@ async def main():
 
         market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=balances['USDT']['free'] + balances['USDT']['locked'], rmv_balance=balances['RMV']['free'] + balances['RMV']['locked'], rmv_value=balances['RMV']['free'] * fair_price + balances['RMV']['locked'] * fair_price, timestamp=timestamp)
         await database_client.record_market_state(market_state=market_state)
+        kucoin_orderbook = kucoin_client.get_orderbook()
+        await database_client.record_orderbook(table="kucoin_orderbook", exchange="kucoin", orderbook=kucoin_orderbook, timestamp=timestamp)
+        mexc_orderbook = mexc_client.get_orderbook()
+        await database_client.record_orderbook(table="mexc_orderbook", exchange="mexc", orderbook=mexc_orderbook, timestamp=timestamp)
 
 
 if __name__ == '__main__':

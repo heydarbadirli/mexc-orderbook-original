@@ -68,8 +68,10 @@ class KucoinClient(ExchangeClient):
                             asks = [OrderLevel(price=Decimal(str(a[0])), size=Decimal(str(a[1]))) for a in data['data']['asks']]
                             bids = [OrderLevel(price=Decimal(str(a[0])), size=Decimal(str(a[1]))) for a in data['data']['bids']]
 
+                            if self.orderbook.asks == asks and self.orderbook.bids == bids:
+                                continue
+
                             self.orderbook = OrderBook(asks=asks, bids=bids)
-                            # asyncio.create_task(self.on_orderbook_change())
                             await self.add_to_event_queue(type="kucoin orderbook update", data="")
                         except Exception as e:
                             logger.error(f'Exception: {e}')
@@ -124,6 +126,5 @@ class KucoinClient(ExchangeClient):
                 text = await response.json()
                 status = response.status
                 logger.info(f"KuCoin placing order response: {status}, data: {text}")
-
 
                 return text
