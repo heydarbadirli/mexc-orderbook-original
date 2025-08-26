@@ -99,7 +99,7 @@ async def main():
     asyncio.create_task(mexc_client.update_balance())
 
     listen_key = await mexc_client.create_listen_key()
-    await mexc_client.extend_listen_key(listen_key=listen_key)
+    asyncio.create_task(mexc_client.extend_listen_key(listen_key=listen_key))
     asyncio.create_task(mexc_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
     asyncio.create_task(kucoin_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
     asyncio.create_task(mexc_client.track_active_orders(listen_key=listen_key))
