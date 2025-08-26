@@ -11,7 +11,6 @@ from src.market.calculations import calculate_market_depth, calculate_fair_price
 from loguru import logger
 from src.database.client import DatabaseClient
 import signal
-from typing import Dict
 
 load_dotenv()
 
@@ -47,7 +46,7 @@ async def read_from_queue():
                 await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
                 await track_market_depth(mexc_client=mexc_client, kucoin_client=kucoin_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
             elif event.type == EventType.FILLED_ORDER:
-                await update_active_orders(data=event['data'], kucoin_client=kucoin_client, database_client=database_client)
+                await update_active_orders(data=event.data, kucoin_client=kucoin_client, database_client=database_client)
         except Exception as e:
             logger.error(f"error: {e}")
 
