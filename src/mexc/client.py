@@ -112,6 +112,11 @@ class MexcClient(ExchangeClient):
                                 await self.add_to_event_queue(type="filled order", data=data)
                         except Exception as e:
                             logger.error(f"Error: {e}")
+
+            except websockets.exceptions.ConnectionClosedOK as e:
+                logger.info(f"WebSocket closed normally (1000 Bye): {e}. Reconnecting...")
+                await asyncio.sleep(5)
+
             except Exception as e:
                 logger.error(f"Error: {e}")
                 await asyncio.sleep(5)
