@@ -1,5 +1,5 @@
 from decimal import Decimal
-from src.model import CryptoCurrency, DatabaseOrder
+from src.model import CryptoCurrency, DatabaseOrder, OrderBook, OrderLevel
 from src.mexc.client import MexcClient
 from src.kucoin.client import KucoinClient
 import random
@@ -18,6 +18,13 @@ MEXC_TICK_SIZE = Decimal("0.00001")
 # if we have just sold, we delete from active_asks
 # if we have just bought, we delete from active_bids
 
+async def record_our_orders(timestamp: str, database_client: DatabaseClient):
+    bids = [OrderLevel(price=bid['price'], size=bid['size']) for bid in active_bids]
+    asks = [OrderLevel(price=ask['price'], size=ask['size']) for ask in active_asks]
+
+    temp_orderbook = OrderBook(asks=asks, bids=bids)
+    await database_client.record_orderbook(table="our_orders", exchange="None", orderbook=temp_orderbook, timestamp=timestamp)
+
 async def update_active_orders(data, kucoin_client: KucoinClient, database_client: DatabaseClient):
     side = 'buy' if data['tradeType'] == 1 else 'sell'
     size = Decimal(str(data['singleDealQuantity']))
@@ -28,31 +35,32 @@ async def update_active_orders(data, kucoin_client: KucoinClient, database_clien
 
     order = DatabaseOrder(pair=pair, side=side, price=price, size=size, timestamp=timestamp)
     await database_client.record_order(order)
+    fee = Decimal("0.001")
 
     if side == 'sell':
         kucoin_lowest_ask = kucoin_orderbook.asks[0]
 
-        if price > kucoin_lowest_ask.price * Decimal('1.001'):
+        if price > kucoin_lowest_ask.price * (1 + fee):
             size = min(size, kucoin_lowest_ask.size)
-            profit = (price - kucoin_lowest_ask.price * Decimal('1.001')) * size
+            profit_per_unit = (price - kucoin_lowest_ask.price * (1 + fee))
+            profit = profit_per_unit * size
 
             logger.info(f"Arbitrage, profit: {profit}")
 
             # add opposite order
-
         if data['status'] == 2:
             active_asks.pop(0)
     elif side == 'buy':
         kucoin_highest_bid = kucoin_orderbook.bids[0]
 
-        if price < kucoin_highest_bid.price * Decimal('1.001'):
+        if price < kucoin_highest_bid.price * (1 - fee):
             size = min(size, kucoin_highest_bid.size)
-            profit = (price - kucoin_highest_bid.price * Decimal('1.001')) * size
+            profit_per_unit = ((kucoin_highest_bid.price * (1 - fee)) - price)
+            profit = profit_per_unit * size
 
             logger.info(f"Arbitrage, profit: {profit}")
 
             # add opposite order
-
         if data['status'] == 2:
             active_bids.pop(0)
 

@@ -31,8 +31,8 @@ class DatabaseClient:
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         pair VARCHAR(50),
                         side VARCHAR(50),
-                        quantity VARCHAR(50),
-                        price VARCHAR(50),
+                        quantity DECIMAL(20,8),
+                        price DECIMAL(20,8),
                         timestamp DATETIME
                     )
                 """)
@@ -42,18 +42,18 @@ class DatabaseClient:
                 await cursor.execute("""
                     CREATE TABLE IF NOT EXISTS market_states (
                         id INT AUTO_INCREMENT PRIMARY KEY,
-                        market_depth VARCHAR(50),
-                        fair_price VARCHAR(50),
-                        market_spread VARCHAR(50),
-                        usdt_balance VARCHAR(50),
-                        rmv_balance VARCHAR(50),
-                        rmv_value VARCHAR(50),
+                        market_depth DECIMAL(20,8),
+                        fair_price DECIMAL(20,8),
+                        market_spread DECIMAL(20,8),
+                        usdt_balance DECIMAL(20,8),
+                        rmv_balance DECIMAL(20,8),
+                        rmv_value DECIMAL(20,8),
                         timestamp DATETIME
                     )
                 """)
 
 
-        for table_name in ['kucoin_orderbook', 'mexc_orderbook']:
+        for table_name in ['kucoin_orderbook', 'mexc_orderbook', 'our_orders']:
             async with self.pool.acquire() as connection:
                 async with connection.cursor() as cursor:
                     await cursor.execute(f"""
@@ -63,60 +63,68 @@ class DatabaseClient:
                             symbol VARCHAR(50),
                             timestamp DATETIME,
                             
-                            bid1_price VARCHAR(50), bid1_size VARCHAR(50),
-                            bid2_price VARCHAR(50), bid2_size VARCHAR(50),
-                            bid3_price VARCHAR(50), bid3_size VARCHAR(50),
-                            bid4_price VARCHAR(50), bid4_size VARCHAR(50),
-                            bid5_price VARCHAR(50), bid5_size VARCHAR(50),
+                            bid1_price DECIMAL(20,8), bid1_size DECIMAL(20,8),
+                            bid2_price DECIMAL(20,8), bid2_size DECIMAL(20,8),
+                            bid3_price DECIMAL(20,8), bid3_size DECIMAL(20,8),
+                            bid4_price DECIMAL(20,8), bid4_size DECIMAL(20,8),
+                            bid5_price DECIMAL(20,8), bid5_size DECIMAL(20,8),
                         
-                            ask1_price VARCHAR(50), ask1_size VARCHAR(50),
-                            ask2_price VARCHAR(50), ask2_size VARCHAR(50),
-                            ask3_price VARCHAR(50), ask3_size VARCHAR(50),
-                            ask4_price VARCHAR(50), ask4_size VARCHAR(50),
-                            ask5_price VARCHAR(50), ask5_size VARCHAR(50)
+                            ask1_price DECIMAL(20,8), ask1_size DECIMAL(20,8),
+                            ask2_price DECIMAL(20,8), ask2_size DECIMAL(20,8),
+                            ask3_price DECIMAL(20,8), ask3_size DECIMAL(20,8),
+                            ask4_price DECIMAL(20,8), ask4_size DECIMAL(20,8),
+                            ask5_price DECIMAL(20,8), ask5_size DECIMAL(20,8)
                         )
                     """)
 
-
     async def record_order(self, order: DatabaseOrder):
         async with self.pool.acquire() as connection:
-            async with connection.cursor() as cursor:
-                await cursor.execute("""
-                    INSERT INTO orders (pair, side, quantity, price, timestamp)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (order.pair, order.side, str(order.size), str(order.price), order.timestamp))
+            try:
+                async with connection.cursor() as cursor:
+                    await cursor.execute("""
+                        INSERT INTO orders (pair, side, quantity, price, timestamp)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (order.pair, order.side, order.size, order.price, order.timestamp))
+            except Exception as e:
+                logger.error(f"Failed to record order: {e}")
 
 
     async def record_market_state(self, market_state: DatabaseMarketState):
         async with self.pool.acquire() as connection:
             async with connection.cursor() as cursor:
-                await cursor.execute("""
-                    INSERT INTO market_states  (market_depth, fair_price, market_spread, usdt_balance, rmv_balance, rmv_value, timestamp)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (str(market_state.market_depth), str(market_state.fair_price), str(market_state.market_spread), str(market_state.usdt_balance), str(market_state.rmv_balance), str(market_state.rmv_value), str(market_state.timestamp)))
+                try:
+                    await cursor.execute("""
+                        INSERT INTO market_states  (market_depth, fair_price, market_spread, usdt_balance, rmv_balance, rmv_value, timestamp)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (market_state.market_depth, market_state.fair_price, market_state.market_spread, market_state.usdt_balance, market_state.rmv_balance, market_state.rmv_value, market_state.timestamp))
+                except Exception as e:
+                    logger.error(f"Failed to record market state: {e}")
+
 
     async def record_orderbook(self, table: str, exchange: str, orderbook: OrderBook, timestamp: str):
         values = []
         for i in range(5):
             if i < len(orderbook.bids):
                 level = orderbook.bids[i]
-                values.extend([str(level.price), str(level.size)])
+                values.extend([level.price, level.size])
             else:
                 values.extend([None, None])
         for i in range(5):
             if i < len(orderbook.asks):
                 level = orderbook.asks[i]
-                values.extend([str(level.price), str(level.size)])
+                values.extend([level.price, level.size])
             else:
                 values.extend([None, None])
 
         async with self.pool.acquire() as connection:
             async with connection.cursor() as cursor:
-                await cursor.execute(f"""
-                    INSERT INTO {table} (exchange, symbol, timestamp, bid1_price, bid1_size, bid2_price, bid2_size, bid3_price, bid3_size, bid4_price, bid4_size, bid5_price, bid5_size, ask1_price, ask1_size, ask2_price, ask2_size, ask3_price, ask3_size, ask4_price, ask4_size, ask5_price, ask5_size)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (exchange, "RMV-USDT", timestamp, *values))
-
+                try:
+                    await cursor.execute(f"""
+                        INSERT INTO {table} (exchange, symbol, timestamp, bid1_price, bid1_size, bid2_price, bid2_size, bid3_price, bid3_size, bid4_price, bid4_size, bid5_price, bid5_size, ask1_price, ask1_size, ask2_price, ask2_size, ask3_price, ask3_size, ask4_price, ask4_size, ask5_price, ask5_size)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (exchange, "RMV-USDT", timestamp, *values))
+                except Exception as e:
+                    logger.error(f"Failer to record {exchange} orderbook: {e}")
 
 
     async def close(self):

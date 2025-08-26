@@ -6,11 +6,11 @@ from datetime import datetime
 from src.mexc.client import MexcClient
 from src.model import CryptoCurrency, OrderBook, DatabaseMarketState, DatabaseOrder
 from src.kucoin.client import KucoinClient
-from src.market.tracking import update_active_orders, manage_orders, track_market_spread, track_market_depth
+from src.market.tracking import update_active_orders, manage_orders, track_market_spread, track_market_depth, record_our_orders
 from src.market.calculations import calculate_market_depth, calculate_fair_price
 from loguru import logger
 from src.database.client import DatabaseClient
-
+import signal
 
 load_dotenv()
 
@@ -29,7 +29,6 @@ order_lock = asyncio.Lock()
 event_queue = asyncio.Queue()
 
 async def add_to_event_queue(type: str, data):
-
     await event_queue.put({'type': type, 'data': data})
 
 async def read_from_queue():
@@ -87,6 +86,19 @@ async def read_from_queue():
 # other functions can run concurrently
 
 
+def handle_exit(sig, frame):
+    asyncio.get_event_loop().create_task(cancel_orders_and_exit())
+
+async def cancel_orders_and_exit():
+    logger.info("Cancelling all orders on MEXC...")
+    try:
+        await mexc_client.cancel_all_orders()
+    except Exception as e:
+        logger.error(f"Error cancelling orders: {e}")
+    asyncio.get_event_loop().stop()
+
+signal.signal(signal.SIGINT, handle_exit)
+
 mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, add_to_event_queue=add_to_event_queue)
 kucoin_client = KucoinClient(add_to_event_queue=add_to_event_queue)
 database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysql_password)
@@ -131,6 +143,7 @@ async def main():
         logger.info(f"full_account_balance: {full_account_balance}\n")
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+        await record_our_orders(timestamp=timestamp, database_client=database_client)
         market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=balances['USDT']['free'] + balances['USDT']['locked'], rmv_balance=balances['RMV']['free'] + balances['RMV']['locked'], rmv_value=balances['RMV']['free'] * fair_price + balances['RMV']['locked'] * fair_price, timestamp=timestamp)
         await database_client.record_market_state(market_state=market_state)
         kucoin_orderbook = kucoin_client.get_orderbook()
