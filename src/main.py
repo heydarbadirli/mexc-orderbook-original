@@ -6,7 +6,7 @@ from datetime import datetime
 from src.mexc.client import MexcClient
 from src.model import CryptoCurrency, OrderBook, DatabaseMarketState, DatabaseOrder, QueueEvent, EventType
 from src.kucoin.client import KucoinClient
-from src.market.tracking import update_active_orders, manage_orders, track_market_spread, track_market_depth, record_our_orders
+from src.market.tracking import update_active_orders, manage_orders, track_market_spread, track_market_depth, record_our_orders, reset_orders
 from src.market.calculations import calculate_market_depth, calculate_fair_price
 from loguru import logger
 from src.database.client import DatabaseClient
@@ -90,6 +90,7 @@ async def main(): # all o this run concurrently
     asyncio.create_task(kucoin_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
     asyncio.create_task(mexc_client.track_active_orders(listen_key=listen_key))
     asyncio.create_task(read_from_queue())
+    asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
 
     while True:

@@ -14,6 +14,14 @@ active_bids = []
 
 MEXC_TICK_SIZE = Decimal("0.00001")
 
+async def reset_orders(mexc_client: MexcClient):
+    global active_bids, active_asks
+
+    while True:
+        await asyncio.sleep(20 * 60)
+        await mexc_client.cancel_all_orders()
+        active_bids = []
+        active_asks = []
 
 async def record_our_orders(timestamp: str, database_client: DatabaseClient):
     bids = [OrderLevel(price=bid['price'], size=bid['size']) for bid in active_bids]
