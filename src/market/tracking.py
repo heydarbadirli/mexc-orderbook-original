@@ -53,6 +53,8 @@ async def update_active_orders(data, kucoin_client: KucoinClient, database_clien
             active_asks.pop(0)
     elif side == 'buy':
         kucoin_highest_bid = kucoin_orderbook.bids[0]
+        logger.info(f"price: {price}")
+        logger.info(f"kucoin highest bid: {kucoin_highest_bid}")
 
         if price < kucoin_highest_bid.price * (1 - fee):
             size = min(size, kucoin_highest_bid.size)
@@ -214,7 +216,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
     lower_bound = mid_price * (1 - percent / 100)
 
     for i in range(0, len(active_asks)):
-        if active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 10_000:
+        if active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 5_000:
             size = Decimal(random.randint(2_000, 5_000))
         elif active_asks[i]['size'] > 150_000:
             size = Decimal(random.randint(100_000, 150_000))
@@ -226,7 +228,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
             active_asks[i] = {'order_id': order_id, 'price': price, 'size': size}
 
     for i in range(0, len(active_bids)):
-        if active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 10_000:
+        if active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 5_000:
             size = Decimal(random.randint(2_000, 5_000))
         elif active_bids[i]['size'] > 150_000:
             size = Decimal(random.randint(100_000, 150_000))
@@ -239,6 +241,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
 
 
     market_depth = calculate_market_depth(client=mexc_client, percent=percent)
+    # logger.info(f"Market depth {market_depth}")
 
     if market_depth < expected_market_depth:
         how_many_to_add = expected_market_depth - market_depth
@@ -259,11 +262,12 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
         ask_id = len(active_asks) - 1
         stopper = 0
         while how_many_to_add_rmv > 0 and stopper < 1_000:
+            # print(1)
             if ask_id < 0:
                 ask_id = len(active_asks) - 1
 
             if 0 <= ask_id and upper_bound >= active_asks[ask_id]['price']:
-                sell_size = Decimal(random.randint(2_000, 5_000))
+                sell_size = Decimal(random.randint(15_000, 20_000))
                 size = sell_size + active_asks[ask_id]['size']
                 price = active_asks[ask_id]['price']
 
@@ -272,6 +276,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                 if order_id is None:
                     break
                 active_asks[ask_id] = {'order_id': order_id, 'price': price, 'size': size}
+                # rmv_value -= sell_size * price
                 how_many_to_add_rmv -= sell_size * price
 
             ask_id -= 1
@@ -280,11 +285,13 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
         bid_id = len(active_bids) - 1
         stopper = 0
         while how_many_to_add_usdt > 0 and stopper < 1_000:
+            # print(2)
             if bid_id < 0:
                 bid_id = len(active_bids) - 1
 
             if 0 <= bid_id and lower_bound <= active_bids[bid_id]['price']:
-                buy_size = Decimal(random.randint(2_000, 5_000))
+                buy_size = Decimal(random.randint(15_000, 20_000))
+
                 size = buy_size + active_bids[bid_id]['size']
                 price = active_bids[bid_id]['price']
 

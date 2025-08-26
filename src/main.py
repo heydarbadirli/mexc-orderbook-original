@@ -78,9 +78,7 @@ kucoin_client = KucoinClient(add_to_event_queue=add_to_event_queue)
 database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysql_password)
 
 
-async def main():
-    # all of this run concurrently
-
+async def main(): # all o this run concurrently
     await mexc_client.cancel_all_orders()
     await database_client.connect()
 
