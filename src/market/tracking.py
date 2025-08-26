@@ -19,6 +19,7 @@ async def reset_orders(mexc_client: MexcClient):
 
     while True:
         await asyncio.sleep(20 * 60)
+        logger.info("Resetting orders")
         await mexc_client.cancel_all_orders()
         active_bids = []
         active_asks = []
