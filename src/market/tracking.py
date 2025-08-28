@@ -133,8 +133,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift
 
-    ask_id, bid_id = 0, 0
-
     for _ in range(5):
         found = any(d['price'] == act_ask for d in active_asks)
 
@@ -143,14 +141,15 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
 
             sell_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='sell',order_type='limit', size=sell_size, price=act_ask)
             if sell_id is None:
+                logger.error(f'Failed to place limit order: price: {act_ask}, size: {sell_size}')
                 break
-            if len(active_asks) == 0 or act_ask > active_asks[len(active_asks) - 1]['price']:
-                active_asks.append({'order_id': sell_id, 'price': act_ask, 'size': sell_size})
             else:
-                active_asks.insert(ask_id, {'order_id': sell_id, 'price': act_ask, 'size': sell_size})
-                ask_id += 1
+                active_asks.append({'order_id': sell_id, 'price': act_ask, 'size': sell_size})
+
+                active_asks.sort(key=lambda x: x['price'])
         act_ask += MEXC_TICK_SIZE
 
+    for _ in range(5):
         found = any(d['price'] == act_bid for d in active_bids)
 
         if not found:
@@ -158,12 +157,12 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
 
             buy_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='buy',order_type='limit', size=buy_size, price=act_bid)
             if buy_id is None:
+                logger.error(f"Failed to place limit order: price: {act_bid}, size: {buy_size}")
                 break
-            if len(active_bids) == 0 or act_bid < active_bids[len(active_bids) - 1]['price']:
-                active_bids.append({'order_id': buy_id, 'price': act_bid, 'size': buy_size})
             else:
-                active_bids.insert(bid_id, {'order_id': buy_id, 'price': act_bid, 'size': buy_size})
-                bid_id += 1
+                active_bids.append({'order_id': buy_id, 'price': act_bid, 'size': buy_size})
+
+                active_bids.sort(key=lambda x: x['price'], reverse=True)
         act_bid -= MEXC_TICK_SIZE
 
 # track_market_spread
