@@ -229,11 +229,14 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
         elif active_asks[i]['size'] > 150_000:
             size = Decimal(random.randint(100_000, 150_000))
 
-        if (active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 10_000) or active_asks[i]['size'] > 150_000:
+        if (active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 5_000) or active_asks[i]['size'] > 150_000:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[i]['order_id'])
             price = active_asks[i]['price']
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
-            active_asks[i] = {'order_id': order_id, 'price': price, 'size': size}
+            if order_id is not None:
+                active_asks[i] = {'order_id': order_id, 'price': price, 'size': size}
+            else:
+                logger.error(f'Failed to place limit order: price: {price}, size: {size}')
 
     for i in range(0, len(active_bids)):
         if active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 5_000:
@@ -241,11 +244,14 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
         elif active_bids[i]['size'] > 150_000:
             size = Decimal(random.randint(100_000, 150_000))
 
-        if (active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 10_000) or active_bids[i]['size'] > 150_000:
+        if (active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 5_000) or active_bids[i]['size'] > 150_000:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[i]['order_id'])
             price = active_bids[i]['price']
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
-            active_bids[i] = {'order_id': order_id, 'price': price, 'size': size}
+            if order_id is not None:
+                active_bids[i] = {'order_id': order_id, 'price': price, 'size': size}
+            else:
+                logger.error(f'Failed to place limit order: price: {price}, size: {size}')
 
 
     market_depth = calculate_market_depth(client=mexc_client, percent=percent)
@@ -282,7 +288,8 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                 await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[ask_id]['order_id'])
                 order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
                 if order_id is None:
-                    break
+                    logger.error(f'Failed to place limit order: price: {price}, size: {size}')
+                    continue
                 active_asks[ask_id] = {'order_id': order_id, 'price': price, 'size': size}
                 # rmv_value -= sell_size * price
                 how_many_to_add_rmv -= sell_size * price
@@ -306,7 +313,8 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                 await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[bid_id]['order_id'])
                 order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
                 if order_id is None:
-                    break
+                    logger.error(f'Failed to place limit order: price: {price}, size: {size}')
+                    continue
                 active_bids[bid_id] = {'order_id': order_id, 'price': price, 'size': size}
                 how_many_to_add_usdt -= buy_size * price
 
