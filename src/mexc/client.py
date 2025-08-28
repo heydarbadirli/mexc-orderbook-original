@@ -188,10 +188,12 @@ class MexcClient(ExchangeClient):
 
         async with aiohttp.ClientSession() as session:
             async with session.post(url, headers=headers, params=query_string) as response:
+                text = await response.text()
                 if response.status == 200:
                     data = await response.json()
                     return data['orderId']
                 else:
+                    logger.error(f'Order failed: {text}')
                     return None
 
 
