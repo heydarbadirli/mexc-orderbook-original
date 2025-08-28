@@ -289,7 +289,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                 order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
                 if order_id is None:
                     logger.error(f'Failed to place limit order: price: {price}, size: {size}')
-                    continue
+                    break
                 active_asks[ask_id] = {'order_id': order_id, 'price': price, 'size': size}
                 # rmv_value -= sell_size * price
                 how_many_to_add_rmv -= sell_size * price
@@ -314,7 +314,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                 order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
                 if order_id is None:
                     logger.error(f'Failed to place limit order: price: {price}, size: {size}')
-                    continue
+                    break
                 active_bids[bid_id] = {'order_id': order_id, 'price': price, 'size': size}
                 how_many_to_add_usdt -= buy_size * price
 
