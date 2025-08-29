@@ -1,6 +1,7 @@
 from loguru import logger
 from src.model import DatabaseOrder, DatabaseMarketState, OrderBook
 import aiomysql
+from decimal import Decimal
 
 class DatabaseClient:
     def __init__(self, host, user, password):

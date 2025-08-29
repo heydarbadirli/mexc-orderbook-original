@@ -18,7 +18,7 @@ async def reset_orders(mexc_client: MexcClient):
     global active_bids, active_asks
 
     while True:
-        await asyncio.sleep(20 * 60)
+        await asyncio.sleep(30 * 60)
         logger.info("Resetting orders")
         await mexc_client.cancel_all_orders()
         active_bids = []
@@ -27,9 +27,10 @@ async def reset_orders(mexc_client: MexcClient):
 async def record_our_orders(timestamp: str, database_client: DatabaseClient):
     bids = [OrderLevel(price=bid['price'], size=bid['size']) for bid in active_bids]
     asks = [OrderLevel(price=ask['price'], size=ask['size']) for ask in active_asks]
+    fair_price = calculate_fair_price()
 
     temp_orderbook = OrderBook(asks=asks, bids=bids)
-    await database_client.record_orderbook(table="our_orders", exchange="None", orderbook=temp_orderbook, timestamp=timestamp)
+    await database_client.record_orderbook(table="our_orders", exchange="None", orderbook=temp_orderbook, timestamp=timestamp, fair_price)
 
 # update_active_orders:
 # if we have just sold, we delete from active_asks
@@ -62,8 +63,8 @@ async def update_active_orders(data, kucoin_client: KucoinClient, database_clien
             active_asks.pop(0)
     elif side == 'buy':
         kucoin_highest_bid = kucoin_orderbook.bids[0]
-        logger.info(f"price: {price}")
-        logger.info(f"kucoin highest bid: {kucoin_highest_bid}")
+        # logger.info(f"price: {price}")
+        # logger.info(f"kucoin highest bid: {kucoin_highest_bid}")
 
         if price < kucoin_highest_bid.price * (1 - fee):
             size = min(size, kucoin_highest_bid.size)

@@ -98,7 +98,7 @@ async def main(): # all o this run concurrently
 
 
     while True:
-        await asyncio.sleep(60)
+        await asyncio.sleep(30)
         balances = mexc_client.get_balance()
 
         market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
