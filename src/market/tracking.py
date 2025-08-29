@@ -27,10 +27,9 @@ async def reset_orders(mexc_client: MexcClient):
 async def record_our_orders(timestamp: str, database_client: DatabaseClient):
     bids = [OrderLevel(price=bid['price'], size=bid['size']) for bid in active_bids]
     asks = [OrderLevel(price=ask['price'], size=ask['size']) for ask in active_asks]
-    fair_price = calculate_fair_price()
 
     temp_orderbook = OrderBook(asks=asks, bids=bids)
-    await database_client.record_orderbook(table="our_orders", exchange="None", orderbook=temp_orderbook, timestamp=timestamp, fair_price)
+    await database_client.record_orderbook(table="our_orders", exchange="None", orderbook=temp_orderbook, timestamp=timestamp)
 
 # update_active_orders:
 # if we have just sold, we delete from active_asks
