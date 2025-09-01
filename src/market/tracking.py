@@ -97,17 +97,17 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
     bid_shift = 0
 
     if full_rmv_value - full_usdt_balance > 500:
-        ask_shift -= 2 * MEXC_TICK_SIZE
-        bid_shift -= 2 * MEXC_TICK_SIZE
-    elif full_rmv_value - full_usdt_balance < -500:
-        bid_shift += 2 * MEXC_TICK_SIZE
-        ask_shift += 2 * MEXC_TICK_SIZE
-    if full_rmv_value - full_usdt_balance > 200:
         ask_shift -= MEXC_TICK_SIZE
         bid_shift -= MEXC_TICK_SIZE
-    elif full_rmv_value - full_usdt_balance < -200:
-        ask_shift += MEXC_TICK_SIZE
+    elif full_rmv_value - full_usdt_balance < -500:
         bid_shift += MEXC_TICK_SIZE
+        ask_shift += MEXC_TICK_SIZE
+    # if full_rmv_value - full_usdt_balance > 200:
+    #     ask_shift -= MEXC_TICK_SIZE
+    #     bid_shift -= MEXC_TICK_SIZE
+    # elif full_rmv_value - full_usdt_balance < -200:
+    #     ask_shift += MEXC_TICK_SIZE
+    #     bid_shift += MEXC_TICK_SIZE
 
     if full_usdt_balance < full_rmv_value:
         bid_shift -= MEXC_TICK_SIZE
