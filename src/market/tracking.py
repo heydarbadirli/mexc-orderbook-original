@@ -31,19 +31,20 @@ async def record_our_orders(timestamp: str, database_client: DatabaseClient):
     temp_orderbook = OrderBook(asks=asks, bids=bids)
     await database_client.record_orderbook(table="our_orders", exchange="None", orderbook=temp_orderbook, timestamp=timestamp)
 
-# update_active_orders:
+# update_list_of_active_orders:
 # if we have just sold, we delete from active_asks
 # if we have just bought, we delete from active_bids
 
-async def update_active_orders(data, kucoin_client: KucoinClient, database_client: DatabaseClient):
+async def update_list_of_active_orders(data, kucoin_client: KucoinClient, database_client: DatabaseClient):
     side = 'buy' if data['tradeType'] == 1 else 'sell'
     size = Decimal(str(data['singleDealQuantity']))
     price = Decimal(str(data['singleDealPrice']))
     kucoin_orderbook = kucoin_client.get_orderbook()
     pair = 'RMV-USDT'
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    order_id = data['id']
 
-    order = DatabaseOrder(pair=pair, side=side, price=price, size=size, timestamp=timestamp)
+    order = DatabaseOrder(pair=pair, side=side, price=price, size=size, timestamp=timestamp, order_id=order_id)
     await database_client.record_order(order)
     fee = Decimal("0.001")
 
@@ -282,7 +283,7 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
         stopper = 0
         while how_many_to_add_rmv > 0 and stopper < 1_000:
             # print(1)
-            if ask_id < 1:
+            if ask_id < 1: # change something with this 1
                 ask_id = len(active_asks) - 1
 
             if 1 <= ask_id and upper_bound >= active_asks[ask_id]['price']:

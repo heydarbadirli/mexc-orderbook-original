@@ -6,7 +6,7 @@ from datetime import datetime
 from src.mexc.client import MexcClient
 from src.model import CryptoCurrency, OrderBook, DatabaseMarketState, DatabaseOrder, QueueEvent, EventType
 from src.kucoin.client import KucoinClient
-from src.market.tracking import update_active_orders, manage_orders, track_market_spread, track_market_depth, record_our_orders, reset_orders
+from src.market.tracking import update_list_of_active_orders, manage_orders, track_market_spread, track_market_depth, record_our_orders, reset_orders
 from src.market.calculations import calculate_market_depth, calculate_fair_price
 from loguru import logger
 from src.database.client import DatabaseClient
@@ -56,7 +56,7 @@ async def read_from_queue():
                 await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
                 await track_market_depth(mexc_client=mexc_client, kucoin_client=kucoin_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
             elif event.type == EventType.FILLED_ORDER:
-                await update_active_orders(data=event.data, kucoin_client=kucoin_client, database_client=database_client)
+                await update_list_of_active_orders(data=event.data, kucoin_client=kucoin_client, database_client=database_client)
         except Exception as e:
             logger.error(f"error: {e}")
 

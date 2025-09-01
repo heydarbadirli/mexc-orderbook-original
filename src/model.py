@@ -28,6 +28,7 @@ class DatabaseOrder:
     price: Decimal
     size: Decimal
     timestamp: str
+    order_id: str
 
 @dataclass
 class DatabaseMarketState:

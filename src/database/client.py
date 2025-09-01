@@ -83,9 +83,9 @@ class DatabaseClient:
             try:
                 async with connection.cursor() as cursor:
                     await cursor.execute("""
-                        INSERT INTO orders (pair, side, quantity, price, timestamp)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (order.pair, order.side, order.size, order.price, order.timestamp))
+                        INSERT INTO orders (pair, side, quantity, price, timestamp, order_id)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (order.pair, order.side, order.size, order.price, order.timestamp, order.order_id))
             except Exception as e:
                 logger.error(f"Failed to record order: {e}")
 
