@@ -116,10 +116,9 @@ async def main(): # all o this run concurrently
         logger.info(f"usdt locked balance: {balances['USDT']['locked']}")
         logger.info(f"rmv locked balance: {balances['RMV']['locked']} RMV, approximate usd value: {balances['RMV']['locked'] * fair_price}")
         full_account_balance = balances['USDT']['free'] + balances['USDT']['locked'] + balances['RMV']['free'] * fair_price + balances['RMV']['locked'] * fair_price
-        logger.info(f"full_account_balance: {full_account_balance}")
+        logger.info(f"full_account_balance: {full_account_balance}\n")
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        logger.info("adding to database")
         await record_our_orders(timestamp=timestamp, database_client=database_client)
         market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=balances['USDT']['free'] + balances['USDT']['locked'], rmv_balance=balances['RMV']['free'] + balances['RMV']['locked'], rmv_value=balances['RMV']['free'] * fair_price + balances['RMV']['locked'] * fair_price, timestamp=timestamp)
         await database_client.record_market_state(market_state=market_state)
