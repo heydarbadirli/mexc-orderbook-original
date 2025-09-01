@@ -27,8 +27,8 @@ class DatabaseOrder:
     side: str
     price: Decimal
     size: Decimal
-    timestamp: str
     order_id: str
+    timestamp: str
 
 @dataclass
 class DatabaseMarketState:

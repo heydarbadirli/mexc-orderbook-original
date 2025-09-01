@@ -51,10 +51,10 @@ async def read_from_queue():
 
         try:
             if event.type == EventType.KUCOIN_ORDERBOOK_UPDATE:
-                await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
+                await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client, database_client=database_client)
             elif event.type == EventType.MEXC_ORDERBOOK_UPDATE:
-                await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client)
-                await track_market_depth(mexc_client=mexc_client, kucoin_client=kucoin_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
+                await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client, database_client=database_client)
+                await track_market_depth(mexc_client=mexc_client, database_client=database_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
             elif event.type == EventType.FILLED_ORDER:
                 await update_list_of_active_orders(data=event.data, kucoin_client=kucoin_client, database_client=database_client)
         except Exception as e:

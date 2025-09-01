@@ -25,18 +25,20 @@ class DatabaseClient:
 
         logger.info("Successfully connected to MySql database")
 
-        async with self.pool.acquire() as connection:
-            async with connection.cursor() as cursor:
-                await cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS orders (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        pair VARCHAR(50),
-                        side VARCHAR(50),
-                        quantity DECIMAL(20,8),
-                        price DECIMAL(20,8),
-                        timestamp DATETIME
-                    )
-                """)
+        for table_name in ['orders', 'every_order_placed']:
+            async with self.pool.acquire() as connection:
+                async with connection.cursor() as cursor:
+                    await cursor.execute(f"""
+                        CREATE TABLE IF NOT EXISTS {table_name} (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            pair VARCHAR(50),
+                            side VARCHAR(50),
+                            quantity DECIMAL(20,8),
+                            price DECIMAL(20,8),
+                            order_id VARCHAR(50),
+                            timestamp DATETIME
+                        )
+                    """)
 
         async with self.pool.acquire() as connection:
             async with connection.cursor() as cursor:
@@ -78,12 +80,13 @@ class DatabaseClient:
                         )
                     """)
 
-    async def record_order(self, order: DatabaseOrder):
+
+    async def record_order(self, order: DatabaseOrder, table_name: str):
         async with self.pool.acquire() as connection:
             try:
                 async with connection.cursor() as cursor:
-                    await cursor.execute("""
-                        INSERT INTO orders (pair, side, quantity, price, timestamp, order_id)
+                    await cursor.execute(f"""
+                        INSERT INTO {table_name} (pair, side, quantity, price, timestamp, order_id)
                         VALUES (%s, %s, %s, %s, %s, %s)
                     """, (order.pair, order.side, order.size, order.price, order.timestamp, order.order_id))
             except Exception as e:

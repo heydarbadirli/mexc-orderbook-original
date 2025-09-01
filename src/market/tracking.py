@@ -45,7 +45,7 @@ async def update_list_of_active_orders(data, kucoin_client: KucoinClient, databa
     order_id = data['id']
 
     order = DatabaseOrder(pair=pair, side=side, price=price, size=size, timestamp=timestamp, order_id=order_id)
-    await database_client.record_order(order)
+    await database_client.record_order(order=order, table_name="orders")
     fee = Decimal("0.001")
 
     if side == 'sell':
@@ -84,7 +84,7 @@ async def update_list_of_active_orders(data, kucoin_client: KucoinClient, databa
 # if some of our asks/bids price is too low/high it also cancels them
 # it checks 5 levels of prices for bids and asks na if we don't have order on that level, we place it
 
-async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
+async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, database_client: DatabaseClient):
     mexc_orderbook = mexc_client.get_orderbook()
     kucoin_orderbook = kucoin_client.get_orderbook()
 
@@ -150,6 +150,9 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
                 logger.error(f'Failed to place limit order: price: {act_ask}, size: {sell_size}')
                 break
             else:
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                order = DatabaseOrder(pair='RMV-USDT', side='sell', price=act_ask, size=sell_size, order_id=sell_id, timestamp=timestamp)
+                await database_client.record_order(order=order, table_name="every_order_placed")
                 active_asks.append({'order_id': sell_id, 'price': act_ask, 'size': sell_size})
 
                 active_asks.sort(key=lambda x: x['price'])
@@ -166,6 +169,9 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient):
                 logger.error(f"Failed to place limit order: price: {act_bid}, size: {buy_size}")
                 break
             else:
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                order = DatabaseOrder(pair='RMV-USDT', side='buy', price=act_bid, size=buy_size, order_id=buy_id, timestamp=timestamp)
+                await database_client.record_order(order=order, table_name="every_order_placed")
                 active_bids.append({'order_id': buy_id, 'price': act_bid, 'size': buy_size})
 
                 active_bids.sort(key=lambda x: x['price'], reverse=True)
@@ -215,7 +221,7 @@ async def track_market_spread(mexc_client: MexcClient):
 # first it add to highest asks and lowest bids and so on
 # it also takes into account inventory balance and calculates ration of usdt balance and rmv balance and add more size on the side that we have more currency
 
-async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClient, percent: Decimal, expected_market_depth: Decimal):
+async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseClient, percent: Decimal, expected_market_depth: Decimal):
     # await asyncio.sleep(1)
     mexc_orderbook = mexc_client.get_orderbook()
     if len(mexc_orderbook.asks) == 0 or len(active_asks) == 0 or len(active_bids) == 0:
@@ -240,6 +246,10 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
             price = active_asks[i]['price']
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
             if order_id is not None:
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                order = DatabaseOrder(pair='RMV-USDT', side='sell', price=price, size=size, order_id=order_id, timestamp=timestamp)
+                await database_client.record_order(order=order, table_name="every_order_placed")
+
                 active_asks[i] = {'order_id': order_id, 'price': price, 'size': size}
             else:
                 logger.error(f'Failed to place limit order: price: {price}, size: {size}')
@@ -255,6 +265,10 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
             price = active_bids[i]['price']
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
             if order_id is not None:
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                order = DatabaseOrder(pair='RMV-USDT', side='buy', price=price, size=size, order_id=order_id, timestamp=timestamp)
+                await database_client.record_order(order=order, table_name="every_order_placed")
+
                 active_bids[i] = {'order_id': order_id, 'price': price, 'size': size}
             else:
                 logger.error(f'Failed to place limit order: price: {price}, size: {size}')
@@ -283,10 +297,10 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
         stopper = 0
         while how_many_to_add_rmv > 0 and stopper < 1_000:
             # print(1)
-            if ask_id < 1: # change something with this 1
+            if ask_id < 0: # change something with this 1
                 ask_id = len(active_asks) - 1
 
-            if 1 <= ask_id and upper_bound >= active_asks[ask_id]['price']:
+            if 0 <= ask_id and upper_bound >= active_asks[ask_id]['price']:
                 sell_size = Decimal(random.randint(2_000, 5_000))
                 size = sell_size + active_asks[ask_id]['size']
                 price = active_asks[ask_id]['price']
@@ -296,9 +310,13 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                 if order_id is None:
                     logger.error(f'Failed to place limit order: price: {price}, size: {size}')
                     break
-                active_asks[ask_id] = {'order_id': order_id, 'price': price, 'size': size}
-                # rmv_value -= sell_size * price
-                how_many_to_add_rmv -= sell_size * price
+                else:
+                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    order = DatabaseOrder(pair='RMV-USDT', side='sell', price=price, size=size, order_id=order_id, timestamp=timestamp)
+                    await database_client.record_order(order=order, table_name="every_order_placed")
+
+                    active_asks[ask_id] = {'order_id': order_id, 'price': price, 'size': size}
+                    how_many_to_add_rmv -= sell_size * price
 
             ask_id -= 1
             stopper += 1
@@ -307,10 +325,10 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
         stopper = 0
         while how_many_to_add_usdt > 0 and stopper < 1_000:
             # print(2)
-            if bid_id < 1:
+            if bid_id < 0:
                 bid_id = len(active_bids) - 1
 
-            if 1 <= bid_id and lower_bound <= active_bids[bid_id]['price']:
+            if 0 <= bid_id and lower_bound <= active_bids[bid_id]['price']:
                 buy_size = Decimal(random.randint(2_000, 5_000))
 
                 size = buy_size + active_bids[bid_id]['size']
@@ -321,8 +339,13 @@ async def track_market_depth(mexc_client: MexcClient, kucoin_client: KucoinClien
                 if order_id is None:
                     logger.error(f'Failed to place limit order: price: {price}, size: {size}')
                     break
-                active_bids[bid_id] = {'order_id': order_id, 'price': price, 'size': size}
-                how_many_to_add_usdt -= buy_size * price
+                else:
+                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    order = DatabaseOrder(pair='RMV-USDT', side='buy', price=price, size=size, order_id=order_id, timestamp=timestamp)
+                    await database_client.record_order(order=order, table_name="every_order_placed")
+
+                    active_bids[bid_id] = {'order_id': order_id, 'price': price, 'size': size}
+                    how_many_to_add_usdt -= buy_size * price
 
             bid_id -= 1
             stopper += 1
