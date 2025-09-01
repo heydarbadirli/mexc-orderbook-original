@@ -153,6 +153,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 order = DatabaseOrder(pair='RMV-USDT', side='sell', price=act_ask, size=sell_size, order_id=sell_id, timestamp=timestamp)
                 await database_client.record_order(order=order, table_name="every_order_placed")
+
                 active_asks.append({'order_id': sell_id, 'price': act_ask, 'size': sell_size})
 
                 active_asks.sort(key=lambda x: x['price'])
@@ -172,6 +173,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 order = DatabaseOrder(pair='RMV-USDT', side='buy', price=act_bid, size=buy_size, order_id=buy_id, timestamp=timestamp)
                 await database_client.record_order(order=order, table_name="every_order_placed")
+
                 active_bids.append({'order_id': buy_id, 'price': act_bid, 'size': buy_size})
 
                 active_bids.sort(key=lambda x: x['price'], reverse=True)
