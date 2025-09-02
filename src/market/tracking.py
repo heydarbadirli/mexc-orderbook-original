@@ -14,6 +14,8 @@ active_bids = []
 
 MEXC_TICK_SIZE = Decimal("0.00001")
 
+INVENTORY_BALANCE = Decimal(265000)
+
 async def reset_orders(mexc_client: MexcClient):
     global active_bids, active_asks
 
@@ -93,16 +95,29 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         return
     balances = mexc_client.get_balance()
     full_usdt_balance = balances['USDT']['free'] + balances['USDT']['locked']
+    full_rmv_balance = balances['RMV']['free'] + balances['RMV']['locked']
     full_rmv_value = (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
-    ask_shift =0
+    ask_shift = 0
     bid_shift = 0
 
-    if full_rmv_value - full_usdt_balance > 500:
+    if full_rmv_balance < INVENTORY_BALANCE:
+        ask_shift += 1
+    else:
+        bid_shift -= 1
+
+    if full_rmv_balance - INVENTORY_BALANCE < 100_000:
         ask_shift -= MEXC_TICK_SIZE
         bid_shift -= MEXC_TICK_SIZE
-    elif full_rmv_value - full_usdt_balance < -500:
+    elif full_rmv_balance - INVENTORY_BALANCE < -100_000:
         bid_shift += MEXC_TICK_SIZE
         ask_shift += MEXC_TICK_SIZE
+
+    # if full_rmv_value - full_usdt_balance > 500:
+    #     ask_shift -= MEXC_TICK_SIZE
+    #     bid_shift -= MEXC_TICK_SIZE
+    # elif full_rmv_value - full_usdt_balance < -500:
+    #     bid_shift += MEXC_TICK_SIZE
+    #     ask_shift += MEXC_TICK_SIZE
     # if full_rmv_value - full_usdt_balance > 200:
     #     ask_shift -= MEXC_TICK_SIZE
     #     bid_shift -= MEXC_TICK_SIZE
@@ -110,10 +125,10 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     #     ask_shift += MEXC_TICK_SIZE
     #     bid_shift += MEXC_TICK_SIZE
 
-    if full_usdt_balance < full_rmv_value:
-        bid_shift -= MEXC_TICK_SIZE
-    elif full_rmv_value < full_usdt_balance:
-        ask_shift += MEXC_TICK_SIZE
+    # if full_usdt_balance < full_rmv_value:
+    #     bid_shift -= MEXC_TICK_SIZE
+    # elif full_rmv_value < full_usdt_balance:
+    #     ask_shift += MEXC_TICK_SIZE
 
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
