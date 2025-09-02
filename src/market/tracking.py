@@ -14,7 +14,7 @@ active_bids = []
 
 MEXC_TICK_SIZE = Decimal("0.00001")
 
-INVENTORY_BALANCE = Decimal(265000)
+INVENTORY_BALANCE = Decimal(275000)
 
 async def reset_orders(mexc_client: MexcClient):
     global active_bids, active_asks

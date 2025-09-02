@@ -27,7 +27,7 @@ mysql_host = os.getenv("MYSQL_HOST")
 mysql_user = os.getenv("MYSQL_USER")
 mysql_password = os.getenv("MYSQL_PASSWORD")
 
-EXPECTED_MARKET_DEPTH = Decimal(1000)
+EXPECTED_MARKET_DEPTH = Decimal(1100)
 
 order_lock = asyncio.Lock()
 event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
