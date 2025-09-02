@@ -112,11 +112,16 @@ async def main(): # all o this run concurrently
             print()
             continue
         logger.info(f"usdt free balance: {balances['USDT']['free']}")
-        logger.info(f"rmv free balance {balances['RMV']['free']}, approximated usd value: {balances['RMV']['free'] * fair_price}")
         logger.info(f"usdt locked balance: {balances['USDT']['locked']}")
-        logger.info(f"rmv locked balance: {balances['RMV']['locked']} RMV, approximate usd value: {balances['RMV']['locked'] * fair_price}")
-        full_account_balance = balances['USDT']['free'] + balances['USDT']['locked'] + balances['RMV']['free'] * fair_price + balances['RMV']['locked'] * fair_price
+        logger.info(f"usdt full balance: {balances['USDT']['free'] + balances['USDT']['locked']}")
+
+        logger.info(f"rmv free balance {balances['RMV']['free']}, approximated usd value: {balances['RMV']['free'] * fair_price}")
+        logger.info(f"rmv locked balance: {balances['RMV']['locked']}, approximate usd value: {balances['RMV']['locked'] * fair_price}")
+        logger.info(f"rmv full balance: {balances['RMV']['free'] + balances['RMV']['locked']}, approximated usd value: {(balances['RMV']['free'] + balances['RMV']['locked']) * fair_price}")
+
+        full_account_balance = balances['USDT']['free'] + balances['USDT']['locked'] + (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
         logger.info(f"full_account_balance: {full_account_balance}\n")
+
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         await record_our_orders(timestamp=timestamp, database_client=database_client)
