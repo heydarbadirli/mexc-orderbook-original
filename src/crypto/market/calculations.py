@@ -1,7 +1,7 @@
 from decimal import Decimal
-from src.mexc.client import MexcClient
-from src.kucoin.client import KucoinClient
-from src.model import OrderBook, ExchangeClient
+from src.crypto.mexc.client import MexcClient
+from src.crypto.kucoin.client import KucoinClient
+from src.model import ExchangeClient
 
 # calculate_market_depth:
 # calculates market depth by getting upper price and lower price and adding sizes of orders

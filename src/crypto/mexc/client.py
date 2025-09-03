@@ -1,6 +1,6 @@
 from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient, EventType, QueueEvent
 import websockets
-from src.mexc.websocket_proto import PushDataV3ApiWrapper_pb2
+from src.crypto.mexc.websocket_proto import PushDataV3ApiWrapper_pb2
 from google.protobuf.json_format import MessageToDict
 import json
 from loguru import logger

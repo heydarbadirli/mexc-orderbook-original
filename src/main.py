@@ -3,11 +3,11 @@ import os
 from dotenv import load_dotenv
 from decimal import Decimal, getcontext
 from datetime import datetime
-from src.mexc.client import MexcClient
-from src.model import CryptoCurrency, OrderBook, DatabaseMarketState, DatabaseOrder, QueueEvent, EventType
-from src.kucoin.client import KucoinClient
-from src.market.tracking import update_list_of_active_orders, manage_orders, track_market_spread, track_market_depth, record_our_orders, reset_orders
-from src.market.calculations import calculate_market_depth, calculate_fair_price
+from src.crypto.mexc.client import MexcClient
+from src.model import CryptoCurrency, DatabaseMarketState, QueueEvent, EventType
+from src.crypto.kucoin.client import KucoinClient
+from src.crypto.market.tracking import update_list_of_active_orders, manage_orders, track_market_spread, track_market_depth, record_our_orders, reset_orders
+from src.crypto.market.calculations import calculate_market_depth, calculate_fair_price
 from loguru import logger
 from src.database.client import DatabaseClient
 import signal
