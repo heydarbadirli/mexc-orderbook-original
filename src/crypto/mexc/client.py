@@ -242,9 +242,9 @@ class MexcClient(ExchangeClient):
 
         response = requests.delete(self.rest_base_url + cancel_endpoint)
         if response.status_code == 200:
-            logger.info("Cancelled orders:", response.json())
+            logger.info(f"Cancelled orders: response.json()")
         else:
-            logger.error(response.status_code, response.text)
+            logger.error(f'{response.status_code}, {response.text}')
 
 
     async def update_balance(self):
