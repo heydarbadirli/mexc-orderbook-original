@@ -159,6 +159,11 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift
+    # print(f'fair_price: {fair_price}')
+    # print(f'act_ask: {act_ask}')
+    # print(f'act_bid: {act_bid}')
+    # print(f'ask_shift: {ask_shift}')
+    # print(f'bids_shift: {bid_shift}')
 
     for _ in range(5):
         found = any(d['price'] == act_ask for d in active_asks)
