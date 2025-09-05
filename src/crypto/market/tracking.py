@@ -269,7 +269,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         elif active_asks[i]['size'] > 200_000:
             size = Decimal(random.randint(100_000, 150_000))
 
-        if (active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 5_000) or active_asks[i]['size'] > 150_000:
+        if (active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 5_000) or active_asks[i]['size'] > 200_000:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[i]['order_id'])
             price = active_asks[i]['price']
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
@@ -288,7 +288,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         elif active_bids[i]['size'] > 200_000:
             size = Decimal(random.randint(100_000, 150_000))
 
-        if (active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 5_000) or active_bids[i]['size'] > 150_000:
+        if (active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 5_000) or active_bids[i]['size'] > 200_000:
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[i]['order_id'])
             price = active_bids[i]['price']
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
