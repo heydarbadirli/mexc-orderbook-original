@@ -96,6 +96,8 @@ async def main(): # all o this run concurrently
     asyncio.create_task(read_from_queue())
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
+    await asyncio.sleep(10)
+
     while True:
         await asyncio.sleep(1)
         balances = mexc_client.get_balance()
