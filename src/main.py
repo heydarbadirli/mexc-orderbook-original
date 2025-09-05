@@ -97,6 +97,7 @@ async def main(): # all o this run concurrently
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
     while True:
+        logger.info('start')
         await asyncio.sleep(10)
         balances = mexc_client.get_balance()
 
@@ -130,7 +131,7 @@ async def main(): # all o this run concurrently
         await database_client.record_orderbook(table="kucoin_orderbook", exchange="kucoin", orderbook=kucoin_orderbook, timestamp=timestamp)
         mexc_orderbook = mexc_client.get_orderbook()
         await database_client.record_orderbook(table="mexc_orderbook", exchange="mexc", orderbook=mexc_orderbook, timestamp=timestamp)
-
+        logger.info('end')
 
 if __name__ == '__main__':
     asyncio.run(main())
