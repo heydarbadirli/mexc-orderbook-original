@@ -120,7 +120,7 @@ async def main(): # all o this run concurrently
         logger.info(f"rmv full balance: {balances['RMV']['free'] + balances['RMV']['locked']}, approximated usd value: {(balances['RMV']['free'] + balances['RMV']['locked']) * fair_price}")
 
         full_account_balance = balances['USDT']['free'] + balances['USDT']['locked'] + (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
-        logger.info(f"full_account_balance: {full_account_balance}\n")
+        logger.info(f"full_account_balance: {full_account_balance}")
 
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -131,7 +131,7 @@ async def main(): # all o this run concurrently
         await database_client.record_orderbook(table="kucoin_orderbook", exchange="kucoin", orderbook=kucoin_orderbook, timestamp=timestamp)
         mexc_orderbook = mexc_client.get_orderbook()
         await database_client.record_orderbook(table="mexc_orderbook", exchange="mexc", orderbook=mexc_orderbook, timestamp=timestamp)
-        logger.info('end')
+        logger.info('end\n')
 
 if __name__ == '__main__':
     asyncio.run(main())
