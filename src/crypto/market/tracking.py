@@ -266,7 +266,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     for i in range(0, len(active_asks)):
         if active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 5_000:
             size = Decimal(random.randint(2_000, 5_000))
-        elif active_asks[i]['size'] > 150_000:
+        elif active_asks[i]['size'] > 200_000:
             size = Decimal(random.randint(100_000, 150_000))
 
         if (active_asks[i]['price'] > upper_bound and active_asks[i]['size'] > 5_000) or active_asks[i]['size'] > 150_000:
@@ -285,7 +285,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     for i in range(0, len(active_bids)):
         if active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 5_000:
             size = Decimal(random.randint(2_000, 5_000))
-        elif active_bids[i]['size'] > 150_000:
+        elif active_bids[i]['size'] > 200_000:
             size = Decimal(random.randint(100_000, 150_000))
 
         if (active_bids[i]['price'] < lower_bound and active_bids[i]['size'] > 5_000) or active_bids[i]['size'] > 150_000:
@@ -329,7 +329,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 ask_id = len(active_asks) - 1
 
             if 0 <= ask_id and upper_bound >= active_asks[ask_id]['price']:
-                sell_size = Decimal(random.randint(2_000, 5_000))
+                sell_size = Decimal(random.randint(5_000, 10_000))
                 size = sell_size + active_asks[ask_id]['size']
                 price = active_asks[ask_id]['price']
 
@@ -357,7 +357,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 bid_id = len(active_bids) - 1
 
             if 0 <= bid_id and lower_bound <= active_bids[bid_id]['price']:
-                buy_size = Decimal(random.randint(2_000, 5_000))
+                buy_size = Decimal(random.randint(5_000, 10_000))
 
                 size = buy_size + active_bids[bid_id]['size']
                 price = active_bids[bid_id]['price']
