@@ -27,7 +27,7 @@ mysql_host = os.getenv("MYSQL_HOST")
 mysql_user = os.getenv("MYSQL_USER")
 mysql_password = os.getenv("MYSQL_PASSWORD")
 
-EXPECTED_MARKET_DEPTH = Decimal(1100)
+EXPECTED_MARKET_DEPTH = Decimal(1200)
 
 order_lock = asyncio.Lock()
 event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
@@ -97,7 +97,7 @@ async def main(): # all o this run concurrently
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
     while True:
-        await asyncio.sleep(30)
+        await asyncio.sleep(1)
         balances = mexc_client.get_balance()
 
         market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
