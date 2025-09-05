@@ -97,8 +97,8 @@ async def main(): # all o this run concurrently
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
     while True:
-        logger.info('start')
         await asyncio.sleep(10)
+        logger.info('start')
         balances = mexc_client.get_balance()
 
         market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
