@@ -242,7 +242,7 @@ class MexcClient(ExchangeClient):
 
         response = requests.delete(self.rest_base_url + cancel_endpoint)
         if response.status_code == 200:
-            logger.info(f"Cancelled orders: response.json()")
+            logger.info(f"Cancelled orders: {response.json()}")
         else:
             logger.error(f'{response.status_code}, {response.text}')
 
