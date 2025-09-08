@@ -179,7 +179,7 @@ class MexcClient(ExchangeClient):
                                 token = data['privateAccount']['vcoinName']
                                 # print(self.balances[token]['free'] + Decimal(data['privateAccount']['balanceAmountChange']),self.balances[token]['locked'] + Decimal(data['privateAccount']['frozenAmountChange']))
 
-                                self.balances[token] = {'free': Decimal(data['privateAccount']['balanceAmount']), 'locked': Decimal(data['privateAccount']['frozenAmount'])}
+                                self.balances[token] = {'free': Decimal(str(data['privateAccount']['balanceAmount'])), 'locked': Decimal(str(data['privateAccount']['frozenAmount']))}
                                 # print(self.balances[token])
 
 
@@ -238,8 +238,8 @@ class MexcClient(ExchangeClient):
             'type': order_type.upper(),
             'symbol': symbol,
             'side': side.upper(),
-            'price': price,
-            'quantity': size,
+            'price': str(price),
+            'quantity': str(size),
             'timestamp': timestamp
         }
 
