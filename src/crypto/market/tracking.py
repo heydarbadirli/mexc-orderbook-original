@@ -303,7 +303,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     market_depth = calculate_market_depth(client=mexc_client, percent=percent)
     logger.info(f'Market depth: {market_depth}')
 
-    if market_depth < expected_market_depth:
+    if market_depth < expected_market_depth * Decimal('0.98'):
         how_many_to_add = expected_market_depth - market_depth
 
         usdt_balance = Decimal(str(mexc_client.get_balance()['USDT']['free']))
