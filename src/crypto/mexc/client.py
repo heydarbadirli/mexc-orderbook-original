@@ -13,7 +13,6 @@ import aiohttp
 import asyncio
 from urllib.parse import urlencode
 
-
 class MexcClient(ExchangeClient):
     def __init__(self, api_key: str, api_secret: str, add_to_event_queue=None):
         self.api_key = api_key
@@ -23,6 +22,7 @@ class MexcClient(ExchangeClient):
         self.ws_base_url = "wss://wbs-api.mexc.com/ws"
         self.rest_base_url = "https://api.mexc.com"
         self.add_to_event_queue = add_to_event_queue
+        self.lock = asyncio.Lock()
 
 
     def get_orderbook(self):
@@ -146,7 +146,6 @@ class MexcClient(ExchangeClient):
                     for token in data['balances']:
                         if token['asset'] == CryptoCurrency.RMV.value or token['asset'] == CryptoCurrency.USDT.value:
                             self.balances[token['asset']] = {'free': Decimal(token['free']), 'locked': Decimal(token['locked'])}
-            await asyncio.sleep(10)
         except Exception as e:
             logger.error(f'error: {e}')
 
@@ -165,6 +164,7 @@ class MexcClient(ExchangeClient):
                     await ws.send(json.dumps(subscribe_message))
 
                     await self.get_balance_snapshot()
+                    logger.info('Fetched balance snapshot')
 
                     async for message in ws:
                         try:
@@ -174,7 +174,7 @@ class MexcClient(ExchangeClient):
                             result.ParseFromString(message)
 
                             data = MessageToDict(result)
-                            # print(data)
+                            print(data)
                             if 'privateAccount' in data:
                                 token = data['privateAccount']['vcoinName']
                                 # print(self.balances[token]['free'] + Decimal(data['privateAccount']['balanceAmountChange']),self.balances[token]['locked'] + Decimal(data['privateAccount']['frozenAmountChange']))
@@ -230,38 +230,41 @@ class MexcClient(ExchangeClient):
                 await asyncio.sleep(5)
 
     async def place_limit_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, side: str, order_type: str, size: Decimal, price: Decimal):
-        symbol = first_currency.value + second_currency.value
-        url = self.rest_base_url + '/api/v3/order'
+        async with self.lock:
+            symbol = first_currency.value + second_currency.value
+            url = self.rest_base_url + '/api/v3/order'
 
-        timestamp = str(int(time.time() * 1000))
-        params = {
-            'type': order_type.upper(),
-            'symbol': symbol,
-            'side': side.upper(),
-            'price': str(price),
-            'quantity': str(size),
-            'timestamp': timestamp
-        }
+            timestamp = str(int(time.time() * 1000))
+            params = {
+                'type': order_type.upper(),
+                'symbol': symbol,
+                'side': side.upper(),
+                'price': str(price),
+                'quantity': str(size),
+                'timestamp': timestamp
+            }
 
-        query_string = "&".join([f"{key}={params[key]}" for key in sorted(params.keys())])
+            query_string = "&".join([f"{key}={params[key]}" for key in sorted(params.keys())])
 
-        signature = self.get_signature(query_string=query_string)
-        query_string += f'&signature={signature}'
+            signature = self.get_signature(query_string=query_string)
+            query_string += f'&signature={signature}'
 
-        headers = {
-            'X-MEXC-APIKEY': self.api_key,
-            'Content-Type': 'application/json'
-        }
+            headers = {
+                'X-MEXC-APIKEY': self.api_key,
+                'Content-Type': 'application/json'
+            }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, params=query_string) as response:
-                text = await response.text()
-                if response.status == 200:
-                    data = await response.json()
-                    return data['orderId']
-                else:
-                    logger.error(f'Order failed: {text}')
-                    return None
+            logger.info(f'placing order, price: {price}, size: {size}, balance: {self.balances}"')
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, params=query_string) as response:
+                    text = await response.text()
+                    if response.status == 200:
+                        data = await response.json()
+                        return data['orderId']
+                    else:
+                        logger.error(f'Order failed: {text}, price: {price}, size: {size}, balances: {self.balances}')
+                        return None
 
 
     async def cancel_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, order_id: str):
