@@ -121,6 +121,74 @@ class MexcClient(ExchangeClient):
                 logger.error(f"Error: {e}")
                 await asyncio.sleep(5)
 
+    async def get_balance_snapshot(self):
+        try:
+            timestamp = str(int(time.time() * 1000))
+            query_string = f'api_key={self.api_key}&timestamp={timestamp}'
+            signature = self.get_signature(query_string=query_string)
+
+            url = 'https://api.mexc.com/api/v3/account'
+            params = {
+                'api_key': self.api_key,
+                'timestamp': timestamp,
+                'signature': signature
+            }
+
+            headers = {
+                'X-MEXC-APIKEY': self.api_key,
+                'Content-Type': 'application/json'
+            }
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers, params=params) as response:
+                    data = await response.json()
+
+                    for token in data['balances']:
+                        if token['asset'] == CryptoCurrency.RMV.value or token['asset'] == CryptoCurrency.USDT.value:
+                            self.balances[token['asset']] = {'free': Decimal(token['free']), 'locked': Decimal(token['locked'])}
+            await asyncio.sleep(10)
+        except Exception as e:
+            logger.error(f'error: {e}')
+
+
+    async def track_balance(self, listen_key: str):
+        url = f'{self.ws_base_url}?listenKey={listen_key}'
+
+        while True:
+            try:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=20) as ws:
+                    subscribe_message = {
+                        "method": "SUBSCRIPTION",
+                        "params": ["spot@private.account.v3.api.pb"]
+                    }
+
+                    await ws.send(json.dumps(subscribe_message))
+
+                    await self.get_balance_snapshot()
+
+                    async for message in ws:
+                        try:
+                            if isinstance(message, str):
+                                continue
+                            result = PushDataV3ApiWrapper_pb2.PushDataV3ApiWrapper()
+                            result.ParseFromString(message)
+
+                            data = MessageToDict(result)
+                            # print(data)
+                            if 'privateAccount' in data:
+                                token = data['privateAccount']['vcoinName']
+                                # print(self.balances[token]['free'] + Decimal(data['privateAccount']['balanceAmountChange']),self.balances[token]['locked'] + Decimal(data['privateAccount']['frozenAmountChange']))
+
+                                self.balances[token] = {'free': Decimal(data['privateAccount']['balanceAmount']), 'locked': Decimal(data['privateAccount']['frozenAmount'])}
+                                # print(self.balances[token])
+
+
+                        except Exception as e:
+                            logger.error(f"Error: {e}")
+            except Exception as e:
+                logger.error(f"Websocket connection error: {e}")
+                await asyncio.sleep(5)
+
 
     async def update_orderbook(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
         symbol = first_currency.value + second_currency.value
@@ -160,7 +228,6 @@ class MexcClient(ExchangeClient):
             except Exception as e:
                 logger.error(f'WebSocket connection error: {e}')
                 await asyncio.sleep(5)
-
 
     async def place_limit_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, side: str, order_type: str, size: Decimal, price: Decimal):
         symbol = first_currency.value + second_currency.value
@@ -247,32 +314,3 @@ class MexcClient(ExchangeClient):
             logger.error(f'{response.status_code}, {response.text}')
 
 
-    async def update_balance(self):
-        while True:
-            try:
-                timestamp = str(int(time.time() * 1000))
-                query_string = f'api_key={self.api_key}&timestamp={timestamp}'
-                signature = self.get_signature(query_string=query_string)
-
-                url = 'https://api.mexc.com/api/v3/account'
-                params = {
-                    'api_key': self.api_key,
-                    'timestamp': timestamp,
-                    'signature': signature
-                }
-
-                headers = {
-                    'X-MEXC-APIKEY': self.api_key,
-                    'Content-Type': 'application/json'
-                }
-
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(url, headers=headers, params=params) as response:
-                        data = await response.json()
-
-                        for token in data['balances']:
-                            if token['asset'] == CryptoCurrency.RMV.value or token['asset'] == CryptoCurrency.USDT.value:
-                                self.balances[token['asset']] = {'free': Decimal(token['free']), 'locked': Decimal(token['locked'])}
-                await asyncio.sleep(10)
-            except Exception as e:
-                logger.error(f'error: {e}')

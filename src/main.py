@@ -14,7 +14,7 @@ import signal
 
 load_dotenv()
 
-getcontext().prec = 6
+getcontext().prec = 18
 
 api_key_mexc = os.getenv("API_KEY_MEXC")
 api_secret_mexc = os.getenv("API_SECRET_MEXC")
@@ -86,13 +86,15 @@ async def main(): # all o this run concurrently
     await mexc_client.cancel_all_orders()
     await database_client.connect()
 
-    asyncio.create_task(mexc_client.update_balance())
-
     listen_key = await mexc_client.create_listen_key()
     asyncio.create_task(mexc_client.extend_listen_key(listen_key=listen_key))
-    asyncio.create_task(mexc_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
-    asyncio.create_task(kucoin_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
+    asyncio.create_task(mexc_client.track_balance(listen_key=listen_key))
     asyncio.create_task(mexc_client.track_active_orders(listen_key=listen_key))
+
+    asyncio.create_task(mexc_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
+
+    asyncio.create_task(kucoin_client.update_orderbook(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT))
+
     asyncio.create_task(read_from_queue())
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
