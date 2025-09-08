@@ -94,24 +94,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         bid_shift += 2 * MEXC_TICK_SIZE
         ask_shift += 2 * MEXC_TICK_SIZE
 
-    # if full_rmv_value - full_usdt_balance > 500:
-    #     ask_shift -= MEXC_TICK_SIZE
-    #     bid_shift -= MEXC_TICK_SIZE
-    # elif full_rmv_value - full_usdt_balance < -500:
-    #     bid_shift += MEXC_TICK_SIZE
-    #     ask_shift += MEXC_TICK_SIZE
-    # if full_rmv_value - full_usdt_balance > 200:
-    #     ask_shift -= MEXC_TICK_SIZE
-    #     bid_shift -= MEXC_TICK_SIZE
-    # elif full_rmv_value - full_usdt_balance < -200:
-    #     ask_shift += MEXC_TICK_SIZE
-    #     bid_shift += MEXC_TICK_SIZE
-
-    # if full_usdt_balance < full_rmv_value:
-    #     bid_shift -= MEXC_TICK_SIZE
-    # elif full_rmv_value < full_usdt_balance:
-    #     ask_shift += MEXC_TICK_SIZE
-
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
 
@@ -135,36 +117,29 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift
-    # print(f'fair_price: {fair_price}')
-    # print(f'act_ask: {act_ask}')
-    # print(f'act_bid: {act_bid}')
-    # print(f'ask_shift: {ask_shift}')
-    # print(f'bids_shift: {bid_shift}')
 
     for _ in range(5):
         found = any(d['price'] == act_ask for d in active_asks)
 
         if not found:
             balances = mexc_client.get_balance()
-            sell_size = Decimal(min(random.randint(2_000, 5_000), balances['RMV']['free'] * Decimal(0.997)))
+            size = Decimal(min(random.randint(2_000, 5_000), balances['RMV']['free'] * Decimal('0.999')))
+            size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
-            sell_size = sell_size.quantize(Decimal('1'), rounding=ROUND_DOWN)
-            logger.info(f'size: {sell_size}, balance: {balances}')
-
-            if sell_size <= 0 or balances['RMV']['free'] <= 400: # order value can't be less than 1 USDT
+            if size <= 0 or balances['RMV']['free'] <= 400: # order value can't be less than 1 USDT
                 break
 
-            sell_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='sell',order_type='limit', size=sell_size, price=act_ask)
+            sell_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='sell',order_type='limit', size=size, price=act_ask)
 
             if sell_id is None:
-                logger.error(f'Failed to place limit order: price: {act_ask}, size: {sell_size}, balance: {balances}')
+                logger.error(f'Failed to place limit order: price: {act_ask}, size: {size}, balance: {balances}')
                 break
             else:
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                order = DatabaseOrder(pair='RMV-USDT', side='sell', price=act_ask, size=sell_size, order_id=sell_id, timestamp=timestamp)
+                order = DatabaseOrder(pair='RMV-USDT', side='sell', price=act_ask, size=size, order_id=sell_id, timestamp=timestamp)
                 await database_client.record_order(order=order, table_name="every_order_placed")
 
-                active_asks.append({'order_id': sell_id, 'price': act_ask, 'size': sell_size})
+                active_asks.append({'order_id': sell_id, 'price': act_ask, 'size': size})
 
                 active_asks.sort(key=lambda x: x['price'])
         act_ask += MEXC_TICK_SIZE
@@ -174,26 +149,23 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
         if not found:
             balances = mexc_client.get_balance()
-            buy_size = Decimal(min(random.randint(2_000, 5_000), (balances['USDT']['free'] / act_bid) * Decimal(0.997)))
+            size = Decimal(min(random.randint(2_000, 5_000), (balances['USDT']['free'] / act_bid) * Decimal('0.999')))
+            size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
-
-            buy_size = buy_size.quantize(Decimal('1'), rounding=ROUND_DOWN)
-            logger.info(f'size: {buy_size}, {balances['USDT']['free'] / act_bid}, balance: {balances}')
-
-            if buy_size <= 0 or balances['USDT']['free'] <= Decimal('1.5'): # order value can't be less than 1 USDT
+            if size <= 0 or balances['USDT']['free'] <= Decimal('1.5'): # order value can't be less than 1 USDT
                 break
 
-            buy_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy',order_type='limit', size=buy_size, price=act_bid)
+            buy_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy',order_type='limit', size=size, price=act_bid)
 
             if buy_id is None:
-                logger.error(f"Failed to place limit order: price: {act_bid}, size: {buy_size}, balance: {balances}")
+                logger.error(f"Failed to place limit order: price: {act_bid}, size: {size}, balance: {balances}")
                 break
             else:
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                order = DatabaseOrder(pair='RMV-USDT', side='buy', price=act_bid, size=buy_size, order_id=buy_id, timestamp=timestamp)
+                order = DatabaseOrder(pair='RMV-USDT', side='buy', price=act_bid, size=size, order_id=buy_id, timestamp=timestamp)
                 await database_client.record_order(order=order, table_name="every_order_placed")
 
-                active_bids.append({'order_id': buy_id, 'price': act_bid, 'size': buy_size})
+                active_bids.append({'order_id': buy_id, 'price': act_bid, 'size': size})
 
                 active_bids.sort(key=lambda x: x['price'], reverse=True)
         act_bid -= MEXC_TICK_SIZE
@@ -270,10 +242,9 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             await asyncio.sleep(0.1)
 
             balances = mexc_client.get_balance()
-            size = min(size, balances['RMV']['free'] * Decimal(0.997))
+            size = min(size, balances['RMV']['free'] * Decimal('0.999'))
 
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
-            logger.info(f'size: {size}, balance: {balances}')
 
             if size <= 0 or balances['RMV']['free'] <= 400: # order value can't be less than 1 USDT
                 break
@@ -309,10 +280,9 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             balances = mexc_client.get_balance()
             price = active_bids[i]['price']
 
-            size = min(size, balances['USDT']['free'] / price * Decimal(0.997))
+            size = min(size, (balances['USDT']['free'] / price) * Decimal('0.999'))
 
-            size = size.quantize(Decimal('1'), rounding=ROUND_DOWN) - 50
-            logger.info(f'size: {size}, {balances['USDT']['free'] / price}, balance: {balances}')
+            size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or balances['USDT']['free'] < Decimal('1.5'): # order value can't be less than 1 USDT
                 break
@@ -331,7 +301,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
 
 
     market_depth = calculate_market_depth(client=mexc_client, percent=percent)
-    logger.info(f"Market depth {market_depth}")
+    logger.info(f'Market depth: {market_depth}')
 
     if market_depth < expected_market_depth:
         how_many_to_add = expected_market_depth - market_depth
@@ -352,7 +322,6 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         ask_id = len(active_asks) - 1
         stopper = 0
         while how_many_to_add_rmv > 100 and stopper < 100:
-            logger.info(how_many_to_add_rmv)
             if ask_id < 0: # change something with this 1
                 ask_id = len(active_asks) - 1
 
@@ -371,10 +340,9 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
 
                 balances = mexc_client.get_balance()
 
-                size = min(size, balances['RMV']['free'] * Decimal(0.997))
+                size = min(size, balances['RMV']['free'] * Decimal('0.999'))
 
                 size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
-                logger.info(f'size: {size}, balance: {balances}')
 
                 if size <= 0 or balances['RMV']['free'] < 400: # order value can't be less than 1 USDT
                     del active_asks[ask_id]
@@ -402,7 +370,6 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         bid_id = len(active_bids) - 1
         stopper = 0
         while how_many_to_add_usdt > 1 and stopper < 100:
-            logger.info(how_many_to_add_usdt)
             if bid_id < 0:
                 bid_id = len(active_bids) - 1
 
@@ -419,10 +386,9 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 await asyncio.sleep(0.1)
 
                 balances = mexc_client.get_balance()
-                size = min(size, balances['USDT']['free'] / price * Decimal(0.997))
+                size = min(size, balances['USDT']['free'] / price * Decimal('0.999'))
 
-                size = size.quantize(Decimal('1'), rounding=ROUND_DOWN) - 50
-                logger.info(f'size: {size}, {balances['USDT']['free'] / price}, balance: {balances}')
+                size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
                 if size <= 0 or balances['USDT']['free'] < Decimal('1.5'): # order value can't be less than 1 USDT
                     del active_bids[bid_id]

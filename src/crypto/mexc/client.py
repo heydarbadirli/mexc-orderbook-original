@@ -174,7 +174,7 @@ class MexcClient(ExchangeClient):
                             result.ParseFromString(message)
 
                             data = MessageToDict(result)
-                            print(data)
+
                             if 'privateAccount' in data:
                                 token = data['privateAccount']['vcoinName']
                                 # print(self.balances[token]['free'] + Decimal(data['privateAccount']['balanceAmountChange']),self.balances[token]['locked'] + Decimal(data['privateAccount']['frozenAmountChange']))
@@ -253,8 +253,6 @@ class MexcClient(ExchangeClient):
                 'X-MEXC-APIKEY': self.api_key,
                 'Content-Type': 'application/json'
             }
-
-            logger.info(f'placing order, price: {price}, size: {size}, balance: {self.balances}"')
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, headers=headers, params=query_string) as response:
