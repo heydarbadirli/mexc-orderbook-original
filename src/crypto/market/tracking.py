@@ -96,12 +96,12 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         return
 
     while len(active_orders.asks) > 5:
-        logger.info(f'Cancelled, to many asks: {active_orders.asks[len(active_orders.asks) - 1]}')
+        logger.info(f'Cancelled, to many asks: {active_orders.asks[len(active_orders.asks) - 1]}, asks: {active_orders.asks}')
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
         await asyncio.sleep(0.1)
 
     while len(active_orders.bids) > 5:
-        logger.info(f'Cancelled, to many bids: {active_orders.bids[len(active_orders.bids) - 1]}')
+        logger.info(f'Cancelled, to many bids: {active_orders.bids[len(active_orders.bids) - 1]}, bids: {active_orders.bids}')
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[len(active_orders.bids) - 1].id)
         await asyncio.sleep(0.1)
 
