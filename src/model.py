@@ -9,6 +9,7 @@ class CryptoCurrency(Enum):
     USDT = "USDT"
 
 class OrderLevel(msgspec.Struct):
+    id: str
     price: Decimal
     size: Decimal
 

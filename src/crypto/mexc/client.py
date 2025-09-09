@@ -23,6 +23,7 @@ class MexcClient(ExchangeClient):
         self.rest_base_url = "https://api.mexc.com"
         self.add_to_event_queue = add_to_event_queue
         self.lock = asyncio.Lock()
+        self.active_orders = OrderBook(asks=[], bids=[])
 
 
     def get_orderbook(self):
@@ -31,6 +32,10 @@ class MexcClient(ExchangeClient):
 
     def get_balance(self):
         return self.balances
+
+
+    def get_active_orders(self):
+        return self.active_orders
 
 
     def get_signature(self, query_string: str):
@@ -103,13 +108,64 @@ class MexcClient(ExchangeClient):
                         try:
                             data = json.loads(message)
 
-                            if 'msg' in data and data['msg'] == "spot@private.orders":
+                            if 'msg' in data and data.get('msg') == "spot@private.orders":
                                 logger.info("Subscribed to MEXC order tracking")
-                            elif 'c' in data and data['c'] == 'spot@private.orders' and data['d']['status'] == 2 or data['d']['status'] == 3:
+                            elif data.get('c') == 'spot@private.orders':
                                 data = data['d']
-                                logger.info(f"tracking orders mexc, data: {data}")
-                                event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
-                                await self.add_to_event_queue(event=event)
+
+                                if data['status'] == 1:
+                                    side = 'buy' if data['tradeType'] == 1 else 'sell'
+                                    price = Decimal(str(data['price']))
+                                    size = Decimal(str(data['quantity']))
+                                    order_id = data['id']
+
+                                    if side == 'buy':
+                                        self.active_orders.bids.append(OrderLevel(id=order_id, price=price, size=size))
+                                        self.active_orders.bids.sort(key=lambda x: x.price, reverse=True)
+                                    else:
+                                        self.active_orders.asks.append(OrderLevel(id=order_id, price=price, size=size))
+                                        self.active_orders.asks.sort(key=lambda x: x.price)
+                                elif data['status'] == 2 or data['status'] == 3:
+                                    side = 'buy' if data['tradeType'] == 1 else 'sell'
+                                    order_id = data['id']
+                                    price = Decimal(str(data['singleDealQuantity']))
+                                    size = Decimal(str(data['singleDealPrice']))
+
+                                    if side == 'buy':
+                                        for i in range(len(self.active_orders.bids) - 1, -1, -1):
+                                            if self.active_orders.bids[i].id == order_id:
+                                                if data['status'] == 2:
+                                                    del self.active_orders.bids[i]
+                                                else:
+                                                    self.active_orders.bids[i].size -= size
+                                                break
+                                    else:
+                                        for i in range(len(self.active_orders.asks) -1, -1, -1):
+                                            if self.active_orders.asks[i].id == order_id:
+                                                if data['status'] == 2:
+                                                    del self.active_orders.asks[i]
+                                                else:
+                                                    self.active_orders.asks[i].size -= size
+                                                break
+
+                                    logger.info(f"tracking orders mexc, data: {data}")
+                                    event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
+                                    await self.add_to_event_queue(event=event)
+                                elif data['status'] == 4:
+                                    side = 'buy' if data['tradeType'] == 1 else 'sell'
+                                    order_id = data['id']
+
+                                    if side == 'buy':
+                                        for i in range(len(self.active_orders.bids) - 1, -1, -1):
+                                            if self.active_orders.bids[i].id == order_id:
+                                                del self.active_orders.bids[i]
+                                                break
+                                    else:
+                                        for i in range(len(self.active_orders.asks) - 1, -1, -1):
+                                            if self.active_orders.asks[i].id == order_id:
+                                                del self.active_orders.asks[i]
+                                                break
+
                         except Exception as e:
                             logger.error(f"Error: {e}")
 
@@ -214,8 +270,8 @@ class MexcClient(ExchangeClient):
                             orderbook_dict = MessageToDict(result)
                             data = {'asks': orderbook_dict['publicLimitDepths']['asks'], 'bids': orderbook_dict['publicLimitDepths']['bids']}
 
-                            asks = [OrderLevel(price=Decimal(str(ask['price'])), size=Decimal(str(ask['quantity']))) for ask in data['asks']]
-                            bids = [OrderLevel(price=Decimal(str(bid['price'])), size=Decimal(str(bid['quantity']))) for bid in data['bids']]
+                            asks = [OrderLevel(price=Decimal(str(ask['price'])), size=Decimal(str(ask['quantity'])), id="") for ask in data['asks']]
+                            bids = [OrderLevel(price=Decimal(str(bid['price'])), size=Decimal(str(bid['quantity'])), id="") for bid in data['bids']]
 
                             if self.orderbook.asks == asks and self.orderbook.bids == bids:
                                 continue

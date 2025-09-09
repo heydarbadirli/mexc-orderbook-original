@@ -98,10 +98,13 @@ async def main(): # all o this run concurrently
     asyncio.create_task(read_from_queue())
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
+    mexc_balance = mexc_client.get_balance()
+    mexc_orderbook = mexc_client.get_orderbook()
+    active_orders = mexc_client.get_active_orders()
+
     while True:
         await asyncio.sleep(10)
         logger.info('start')
-        balances = mexc_client.get_balance()
 
         market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
         fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=[], active_bids=[], percent=Decimal('2'))
@@ -110,24 +113,27 @@ async def main(): # all o this run concurrently
         logger.info(f"market depth: {market_depth}")
         logger.info(f"fair price: {fair_price}")
         logger.info(f"market spread: {market_spread}")
+        logger.info(f'active orders: {active_orders}')
+
         if fair_price is None:
             print()
             continue
-        logger.info(f"usdt free balance: {balances['USDT']['free']}")
-        logger.info(f"usdt locked balance: {balances['USDT']['locked']}")
-        logger.info(f"usdt full balance: {balances['USDT']['free'] + balances['USDT']['locked']}")
 
-        logger.info(f"rmv free balance {balances['RMV']['free']}, approximated usd value: {balances['RMV']['free'] * fair_price}")
-        logger.info(f"rmv locked balance: {balances['RMV']['locked']}, approximate usd value: {balances['RMV']['locked'] * fair_price}")
-        logger.info(f"rmv full balance: {balances['RMV']['free'] + balances['RMV']['locked']}, approximated usd value: {(balances['RMV']['free'] + balances['RMV']['locked']) * fair_price}")
+        logger.info(f"usdt free balance: {mexc_balance['USDT']['free']}")
+        logger.info(f"usdt locked balance: {mexc_balance['USDT']['locked']}")
+        logger.info(f"usdt full balance: {mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked']}")
 
-        full_account_balance = balances['USDT']['free'] + balances['USDT']['locked'] + (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
+        logger.info(f"rmv free balance {mexc_balance['RMV']['free']}, approximated usd value: {mexc_balance['RMV']['free'] * fair_price}")
+        logger.info(f"rmv locked balance: {mexc_balance['RMV']['locked']}, approximate usd value: {mexc_balance['RMV']['locked'] * fair_price}")
+        logger.info(f"rmv full balance: {mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked']}, approximated usd value: {(mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked']) * fair_price}")
+
+        full_account_balance = mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'] + (mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked']) * fair_price
         logger.info(f"full_account_balance: {full_account_balance}")
 
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        await record_our_orders(timestamp=timestamp, database_client=database_client)
-        market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=balances['USDT']['free'] + balances['USDT']['locked'], rmv_balance=balances['RMV']['free'] + balances['RMV']['locked'], rmv_value=balances['RMV']['free'] * fair_price + balances['RMV']['locked'] * fair_price, timestamp=timestamp)
+        await record_our_orders(timestamp=timestamp, database_client=database_client, mexc_client=mexc_client)
+        market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'], rmv_balance=mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'], rmv_value=mexc_balance['RMV']['free'] * fair_price + mexc_balance['RMV']['locked'] * fair_price, timestamp=timestamp)
         await database_client.record_market_state(market_state=market_state)
         kucoin_orderbook = kucoin_client.get_orderbook()
         await database_client.record_orderbook(table="kucoin_orderbook", exchange="kucoin", orderbook=kucoin_orderbook, timestamp=timestamp)

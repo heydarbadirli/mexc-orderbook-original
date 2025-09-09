@@ -70,8 +70,8 @@ class KucoinClient(ExchangeClient):
                             if data['type'] != "message":
                                 continue
 
-                            asks = [OrderLevel(price=Decimal(str(a[0])), size=Decimal(str(a[1]))) for a in data['data']['asks']]
-                            bids = [OrderLevel(price=Decimal(str(a[0])), size=Decimal(str(a[1]))) for a in data['data']['bids']]
+                            asks = [OrderLevel(price=Decimal(str(a[0])), size=Decimal(str(a[1])), id="") for a in data['data']['asks']]
+                            bids = [OrderLevel(price=Decimal(str(a[0])), size=Decimal(str(a[1])), id="") for a in data['data']['bids']]
 
                             if self.orderbook.asks == asks and self.orderbook.bids == bids:
                                 continue
