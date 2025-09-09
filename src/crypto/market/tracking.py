@@ -121,7 +121,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     for _ in range(5):
         found = any(d.price == act_ask for d in active_orders.asks)
-        logger.error(f'found {found}, act_ask: {act_ask}')
+        logger.info(f'found {found}, act_ask: {act_ask}')
         if not found:
             balances = mexc_client.get_balance()
             size = Decimal(min(random.randint(8_000, 10_000), balances['RMV']['free'] * Decimal('0.999')))
@@ -149,7 +149,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     for _ in range(5):
         found = any(d.price == act_bid for d in active_orders.bids)
-        logger.error(f'found {found}, act_ask: {act_bid}')
+        logger.info(f'found {found}, act_ask: {act_bid}')
 
         if not found:
             balances = mexc_client.get_balance()
