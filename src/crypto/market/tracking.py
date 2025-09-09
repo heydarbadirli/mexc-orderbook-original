@@ -95,15 +95,15 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
 
-    while len(active_orders.asks) > 5:
-        logger.info(f'Cancelled, to many asks: {active_orders.asks[len(active_orders.asks) - 1]}, asks: {active_orders.asks}')
-        await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
-        await asyncio.sleep(0.1)
-
-    while len(active_orders.bids) > 5:
-        logger.info(f'Cancelled, to many bids: {active_orders.bids[len(active_orders.bids) - 1]}, bids: {active_orders.bids}')
-        await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[len(active_orders.bids) - 1].id)
-        await asyncio.sleep(0.1)
+    # while len(active_orders.asks) > 5:
+    #     logger.info(f'Cancelled, to many asks: {active_orders.asks[len(active_orders.asks) - 1]}, asks: {active_orders.asks}')
+    #     await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
+    #     await asyncio.sleep(0.1)
+    #
+    # while len(active_orders.bids) > 5:
+    #     logger.info(f'Cancelled, to many bids: {active_orders.bids[len(active_orders.bids) - 1]}, bids: {active_orders.bids}')
+    #     await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[len(active_orders.bids) - 1].id)
+    #     await asyncio.sleep(0.1)
 
     while len(active_orders.asks) > 0 and active_orders.asks[0].price <= fair_price + 1 * MEXC_TICK_SIZE + ask_shift:
         logger.info(f'Cancelled, ask price to low: {active_orders.asks[0]}')
@@ -122,10 +122,22 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift # there was 2
     logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
 
+    while len(active_orders.asks) > 0 and active_orders.asks[len(active_orders.asks) - 1].price >= act_ask + 5 * MEXC_TICK_SIZE + ask_shift:
+        await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
+        await asyncio.sleep(0.1)
+
+    while len(active_orders.bids) > 0 and active_orders.bids[len(active_orders.bids) - 1].price <= act_bid - 5 * MEXC_TICK_SIZE + bid_shift:
+        await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT,order_id=active_orders.bids[len(active_orders.bids) - 1].id)
+        await asyncio.sleep(0.1)
+
     for _ in range(5):
         found = any(d.price == act_ask for d in active_orders.asks)
         logger.info(f'found {found}, act_ask: {act_ask}')
         if not found:
+            # if len(active_orders.asks) == 5:
+            #     await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
+            #     await asyncio.sleep(0.1)
+
             balances = mexc_client.get_balance()
             size = Decimal(min(random.randint(8_000, 10_000), balances['RMV']['free'] * Decimal('0.999')))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
@@ -155,6 +167,10 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         logger.info(f'found {found}, act_ask: {act_bid}')
 
         if not found:
+            # if len(active_orders.bids) == 5:
+            #     await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[len(active_orders.bids) - 1].id)
+            #     await asyncio.sleep(0.1)
+
             balances = mexc_client.get_balance()
             size = Decimal(min(random.randint(8_000, 10_000), balances['USDT']['free'] / act_bid * Decimal('0.999')))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
