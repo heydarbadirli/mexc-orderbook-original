@@ -92,26 +92,34 @@ class MexcClient(ExchangeClient):
 
 
     async def track_active_orders(self, listen_key: str):
-        url = f"wss://wbs.mexc.com/ws?listenKey={listen_key}"
+        url = f'{self.ws_base_url}?listenKey={listen_key}'
 
         while True:
             try:
                 async with websockets.connect(url, ping_interval=20, ping_timeout=20) as ws:
                     subscribe_message = {
                         "method": "SUBSCRIPTION",
-                        "params": ["spot@private.orders"]
+                        "params": ["spot@private.orders.v3.api.pb"]
                     }
 
                     await ws.send(json.dumps(subscribe_message))
+                    logger.info("Subscribed to MEXC order tracking")
 
                     async for message in ws:
                         try:
-                            data = json.loads(message)
+                            if isinstance(message, str):
+                                continue
 
-                            if 'msg' in data and data.get('msg') == "spot@private.orders":
-                                logger.info("Subscribed to MEXC order tracking")
-                            elif data.get('c') == 'spot@private.orders':
-                                data = data['d']
+                            result = PushDataV3ApiWrapper_pb2.PushDataV3ApiWrapper()
+                            result.ParseFromString(message)
+
+                            data = MessageToDict(result)
+                            # print(data)
+
+                            # data = json.loads(message)
+
+                            if 'privateOrders' in data:
+                                data = data['privateOrders']
 
                                 if data['status'] == 1:
                                     side = 'buy' if data['tradeType'] == 1 else 'sell'
@@ -128,8 +136,8 @@ class MexcClient(ExchangeClient):
                                 elif data['status'] == 2 or data['status'] == 3:
                                     side = 'buy' if data['tradeType'] == 1 else 'sell'
                                     order_id = data['id']
-                                    price = Decimal(str(data['singleDealQuantity']))
-                                    size = Decimal(str(data['singleDealPrice']))
+                                    price = Decimal(str(data['price']))
+                                    size = Decimal(str(data['remainQuantity']))
 
                                     if side == 'buy':
                                         for i in range(len(self.active_orders.bids) - 1, -1, -1):
@@ -137,7 +145,7 @@ class MexcClient(ExchangeClient):
                                                 if data['status'] == 2:
                                                     del self.active_orders.bids[i]
                                                 else:
-                                                    self.active_orders.bids[i].size -= size
+                                                    self.active_orders.bids[i].size = size
                                                 break
                                     else:
                                         for i in range(len(self.active_orders.asks) -1, -1, -1):
@@ -145,13 +153,14 @@ class MexcClient(ExchangeClient):
                                                 if data['status'] == 2:
                                                     del self.active_orders.asks[i]
                                                 else:
-                                                    self.active_orders.asks[i].size -= size
+                                                    self.active_orders.asks[i].size = size
                                                 break
 
                                     logger.info(f"tracking orders mexc, data: {data}")
                                     event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
                                     await self.add_to_event_queue(event=event)
-                                elif data['status'] == 4:
+                                elif data['status'] == 4 or data['status'] == 5:
+                                    # logger.info(f'removing order: {data}')
                                     side = 'buy' if data['tradeType'] == 1 else 'sell'
                                     order_id = data['id']
 
@@ -342,7 +351,11 @@ class MexcClient(ExchangeClient):
             async with session.delete(url, params=params) as response:
                 data = await response.json()
 
-                # if response.status == 200:
+                if response.status == 200:
+                    ...
+                    # logger.info(f'Successfully canceled order: {data}')
+                else:
+                    logger.error(f'Order cancellation failed: {data}, order_id: {order_id}')
                 #     logger.info(f"Order was cancelled on MEXC, id: {order_id}, data: {data}")
 
     async def cancel_all_orders(self):
