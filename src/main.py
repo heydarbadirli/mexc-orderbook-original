@@ -113,7 +113,8 @@ async def main(): # all o this run concurrently
         logger.info(f"market depth: {market_depth}")
         logger.info(f"fair price: {fair_price}")
         logger.info(f"market spread: {market_spread}")
-        logger.info(f'active orders: {active_orders}')
+        logger.info(f'active asks: {active_orders.asks}')
+        logger.info(f'active bids: {active_orders.bids}')
 
         if fair_price is None:
             print()
