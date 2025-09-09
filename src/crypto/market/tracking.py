@@ -95,14 +95,13 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
 
-    # while len(active_orders.asks) > 5:
-    #     await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
-    # #     active_asks.pop()
-    # #
-    # while len(active_orders.bids) > 5:
-    #     await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[len(active_orders.bids) - 1].id)
-    # #     active_bids.pop()
+    while len(active_orders.asks) > 5:
+        await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
+        await asyncio.sleep(0.1)
 
+    while len(active_orders.bids) > 5:
+        await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[len(active_orders.bids) - 1].id)
+        await asyncio.sleep(0.1)
 
     while len(active_orders.asks) > 0 and active_orders.asks[0].price <= fair_price + 1 * MEXC_TICK_SIZE + ask_shift:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[0].id)
