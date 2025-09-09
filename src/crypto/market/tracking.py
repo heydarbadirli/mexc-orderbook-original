@@ -97,19 +97,23 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     while len(active_orders.asks) > 5:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
+        logger.info('Cancelled, to many asks')
         await asyncio.sleep(0.1)
 
     while len(active_orders.bids) > 5:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[len(active_orders.bids) - 1].id)
+        logger.info('Cancelled, to many bids')
         await asyncio.sleep(0.1)
 
     while len(active_orders.asks) > 0 and active_orders.asks[0].price <= fair_price + 1 * MEXC_TICK_SIZE + ask_shift:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[0].id)
+        logger.info('Cancelled, ask price to low')
         await asyncio.sleep(0.1)
         # active_orders.asks.pop(0)
 
     while len(active_orders.bids) > 0 and active_orders.bids[0].price >= fair_price - 1 * MEXC_TICK_SIZE + bid_shift:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[0].id)
+        logger.info('Cancelled, bid price to high')
         await asyncio.sleep(0.1)
         # active_orders.bids.pop(0)
 
