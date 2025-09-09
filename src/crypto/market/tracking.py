@@ -132,7 +132,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     for _ in range(5):
         found = any(d.price == act_ask for d in active_orders.asks)
-        logger.info(f'found {found}, act_ask: {act_ask}')
+        # logger.info(f'found {found}, act_ask: {act_ask}')
         if not found:
             # if len(active_orders.asks) == 5:
             #     await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
@@ -164,7 +164,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     for _ in range(5):
         found = any(d.price == act_bid for d in active_orders.bids)
-        logger.info(f'found {found}, act_ask: {act_bid}')
+        # logger.info(f'found {found}, act_ask: {act_bid}')
 
         if not found:
             # if len(active_orders.bids) == 5:
