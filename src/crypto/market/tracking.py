@@ -74,10 +74,10 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     ask_shift = 0
     bid_shift = 0
 
-    if full_rmv_balance < INVENTORY_BALANCE:
-        ask_shift += MEXC_TICK_SIZE
-    else:
-        bid_shift -= MEXC_TICK_SIZE
+    # if full_rmv_balance < INVENTORY_BALANCE:
+    #     ask_shift += MEXC_TICK_SIZE
+    # else:
+    #     bid_shift -= MEXC_TICK_SIZE
 
     if full_rmv_balance - INVENTORY_BALANCE > 37_000: # we are long
         ask_shift -= MEXC_TICK_SIZE
@@ -104,19 +104,19 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     # #     active_bids.pop()
 
 
-    while len(active_orders.asks) > 0 and active_orders.asks[0].price <= fair_price + 0 * MEXC_TICK_SIZE + ask_shift:
+    while len(active_orders.asks) > 0 and active_orders.asks[0].price <= fair_price + 1 * MEXC_TICK_SIZE + ask_shift:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[0].id)
         await asyncio.sleep(0.1)
         # active_orders.asks.pop(0)
 
-    while len(active_orders.bids) > 0 and active_orders.bids[0].price >= fair_price - 0 * MEXC_TICK_SIZE + bid_shift:
+    while len(active_orders.bids) > 0 and active_orders.bids[0].price >= fair_price - 1 * MEXC_TICK_SIZE + bid_shift:
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[0].id)
         await asyncio.sleep(0.1)
         # active_orders.bids.pop(0)
 
 
-    act_ask = fair_price + 1 * MEXC_TICK_SIZE + ask_shift # there was 2
-    act_bid = fair_price - 1 * MEXC_TICK_SIZE + bid_shift # there was 2
+    act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift # there was 2
+    act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift # there was 2
 
     for _ in range(5):
         found = any(d.price == act_ask for d in active_orders.asks)
