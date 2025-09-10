@@ -1,5 +1,5 @@
 from decimal import Decimal, ROUND_DOWN
-from src.model import CryptoCurrency, DatabaseOrder, OrderBook, OrderLevel
+from src.model import CryptoCurrency, DatabaseOrder, OrderBook, OrderLevel, ExchangeClient
 from src.crypto.mexc.client import MexcClient
 from src.crypto.kucoin.client import KucoinClient
 import random
@@ -99,13 +99,11 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         logger.info(f'Cancelled, ask price to low: {active_orders.asks[0]}')
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[0].id)
         await asyncio.sleep(0.1)
-        # active_orders.asks.pop(0)
 
     while len(active_orders.bids) > 0 and active_orders.bids[0].price >= fair_price - 1 * MEXC_TICK_SIZE + bid_shift:
         logger.info(f'Cancelled, bid price to high: {active_orders.bids[0]}')
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[0].id)
         await asyncio.sleep(0.1)
-        # active_orders.bids.pop(0)
 
 
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift # there was 2
@@ -147,7 +145,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     for _ in range(5):
         found = any(d.price == act_bid for d in active_orders.bids)
-        # logger.info(f'found {found}, act_ask: {act_bid}')
 
         if not found:
             balances = mexc_client.get_balance()
@@ -172,18 +169,18 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 # track_market_spread
 # it just calculates market spread
 
-async def track_market_spread(mexc_client: MexcClient):
-    mexc_orderbook = mexc_client.get_orderbook()
+async def track_market_spread(client: ExchangeClient):
+    orderbook = client.get_orderbook()
 
     # get_orderbook if len(mexc_orderbook.asks) == 0 or len(active_bids) == 0 or len(active_asks) == 0:
     #     return -1
 
-    lowest_ask_mexc = mexc_orderbook.asks[0].price
-    highest_bid_mexc = mexc_orderbook.bids[0].price
+    lowest_ask = orderbook.asks[0].price
+    highest_bid = orderbook.bids[0].price
 
-    mid_price = (lowest_ask_mexc + highest_bid_mexc) / 2
+    mid_price = (lowest_ask + highest_bid) / 2
 
-    percent_spread = (lowest_ask_mexc - highest_bid_mexc) / mid_price * 100
+    percent_spread = (lowest_ask - highest_bid) / mid_price * 100
 
     # while percent_spread > 2:
     #     sell_size = Decimal(random.randint(500, 2000))
@@ -243,11 +240,11 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         if (i == 0 and active_orders.asks[i].size > 20_000) or (active_orders.asks[i].price > upper_bound and active_orders.asks[i].size > 20_000) or active_orders.asks[i].size > 200_000:
             price = active_orders.asks[i].price
 
-            size = min(size, mexc_balance['RMV']['free'] * Decimal('0.999'))
-            size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
-
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[i].id)
             await asyncio.sleep(0.1)
+
+            size = min(size, mexc_balance['RMV']['free'] * Decimal('0.999'))
+            size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or mexc_balance['RMV']['free'] <= 400: # order value can't be less than 1 USDT
                 logger.error('Something went wrong')
@@ -275,11 +272,11 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         if (i == 0 and active_orders.bids[i].size > 20_000) and (active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > 20_000) or active_orders.bids[i].size > 200_000:
             price = active_orders.bids[i].price
 
-            size = min(size, mexc_balance['USDT']['free'] / price * Decimal('0.999'))
-            size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
-
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[i].id)
             await asyncio.sleep(0.1)
+
+            size = min(size, mexc_balance['USDT']['free'] / price * Decimal('0.999'))
+            size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or mexc_balance['USDT']['free'] < Decimal('1.5'): # order value can't be less than 1 USDT
                 logger.error('Something went wrong')

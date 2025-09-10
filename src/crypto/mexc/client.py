@@ -18,7 +18,7 @@ class MexcClient(ExchangeClient):
         self.api_key = api_key
         self.api_secret = api_secret
         self.orderbook = OrderBook(asks=[], bids=[])
-        self.balances = {}
+        self.balance = {}
         self.ws_base_url = "wss://wbs-api.mexc.com/ws"
         self.rest_base_url = "https://api.mexc.com"
         self.add_to_event_queue = add_to_event_queue
@@ -31,7 +31,7 @@ class MexcClient(ExchangeClient):
 
 
     def get_balance(self):
-        return self.balances
+        return self.balance
 
 
     def get_active_orders(self):
@@ -208,7 +208,7 @@ class MexcClient(ExchangeClient):
 
                     for token in data['balances']:
                         if token['asset'] == CryptoCurrency.RMV.value or token['asset'] == CryptoCurrency.USDT.value:
-                            self.balances[token['asset']] = {'free': Decimal(token['free']), 'locked': Decimal(token['locked'])}
+                            self.balance[token['asset']] = {'free': Decimal(token['free']), 'locked': Decimal(token['locked'])}
         except Exception as e:
             logger.error(f'error: {e}')
 
@@ -242,7 +242,7 @@ class MexcClient(ExchangeClient):
                                 token = data['privateAccount']['vcoinName']
                                 # print(self.balances[token]['free'] + Decimal(data['privateAccount']['balanceAmountChange']),self.balances[token]['locked'] + Decimal(data['privateAccount']['frozenAmountChange']))
 
-                                self.balances[token] = {'free': Decimal(str(data['privateAccount']['balanceAmount'])), 'locked': Decimal(str(data['privateAccount']['frozenAmount']))}
+                                self.balance[token] = {'free': Decimal(str(data['privateAccount']['balanceAmount'])), 'locked': Decimal(str(data['privateAccount']['frozenAmount']))}
                                 # print(self.balances[token])
 
 
