@@ -1,3 +1,4 @@
+from abc import abstractmethod, ABC
 from enum import Enum, auto
 from decimal import Decimal
 import msgspec
@@ -20,9 +21,9 @@ class OrderBook(msgspec.Struct):
     bids: list[OrderLevel]
 
 
-class ExchangeClient:
-    @staticmethod
-    def get_orderbook() -> OrderBook:
+class ExchangeClient(ABC):
+    @abstractmethod
+    def get_orderbook(self) -> OrderBook:
         ...
 
 
