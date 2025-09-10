@@ -95,13 +95,13 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return
 
-    if active_orders.asks[0].size > Decimal('10000'):
+    if len(active_orders.asks) > 0 and active_orders.asks[0].size > Decimal('10000'):
         price = active_orders.asks[0].price
         size = Decimal(random.randint(5_000, 10_000))
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[0].id)
         await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', price=price, size=size)
 
-    if active_orders.bids[0].size > Decimal('10000'):
+    if len(active_orders.bids) > 0 and active_orders.bids[0].size > Decimal('10000'):
         price = active_orders.bids[0].price
         size = Decimal(random.randint(5_000, 10_000))
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[0].id)
