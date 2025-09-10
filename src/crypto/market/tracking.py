@@ -106,8 +106,8 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         await asyncio.sleep(0.1)
 
 
-    act_ask = fair_price + 3 * MEXC_TICK_SIZE + ask_shift # there was 2
-    act_bid = fair_price - 3 * MEXC_TICK_SIZE + bid_shift # there was 2
+    act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift # there was 2
+    act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift # there was 2
     logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
 
     if len(active_orders.asks) > 0 and active_orders.asks[0].price == act_ask and active_orders.asks[0].size > Decimal('10000'):
