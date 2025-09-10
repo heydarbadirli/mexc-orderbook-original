@@ -110,7 +110,7 @@ async def main(): # all o this run concurrently
 
         market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
         fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=[], active_bids=[], percent=Decimal('2'))
-        market_spread = await track_market_spread(mexc_client=mexc_client)
+        market_spread = await track_market_spread(client=mexc_client)
 
         logger.info(f"market depth: {market_depth}")
         logger.info(f"fair price: {fair_price}")
