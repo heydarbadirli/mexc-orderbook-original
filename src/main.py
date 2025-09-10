@@ -101,7 +101,6 @@ async def main(): # all o this run concurrently
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
     mexc_balance = mexc_client.get_balance()
-    mexc_orderbook = mexc_client.get_orderbook()
     active_orders = mexc_client.get_active_orders()
 
     while True:

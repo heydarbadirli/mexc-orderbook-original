@@ -294,6 +294,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     market_depth = calculate_market_depth(client=mexc_client, percent=percent)
 
     if market_depth < expected_market_depth * Decimal('0.98'):
+        mexc_orderbook = mexc_client.get_orderbook()
         how_many_to_add = expected_market_depth - market_depth
 
         usdt_balance = mexc_balance['USDT']['free']
