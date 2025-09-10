@@ -13,10 +13,6 @@ def calculate_market_depth(client: ExchangeClient, percent: Decimal) -> Decimal:
     if len(orderbook.asks) == 0 or len(orderbook.bids) == 0:
         return Decimal('0')
 
-    # lowest_ask = active_asks[0]['price']
-    # highest_bid = active_bids[0]['price']
-    # mid_price = (lowest_ask + highest_bid) / 2
-
     lowest_ask = orderbook.asks[0].price
     highest_bid = orderbook.bids[0].price
     mid_price = (lowest_ask + highest_bid) / 2
@@ -36,7 +32,7 @@ def calculate_market_depth(client: ExchangeClient, percent: Decimal) -> Decimal:
             market_depth += Decimal(str(bid.size)) * Decimal(str(bid.price))
         else:
             break
-    # logger.info(f'market depth: {market_depth}\n')
+
     return market_depth
 
 # calculate_fair_price

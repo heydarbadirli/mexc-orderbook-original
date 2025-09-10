@@ -41,6 +41,7 @@ event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
 async def add_to_event_queue(event: QueueEvent):
     await event_queue.put(event)
 
+
 async def read_from_queue():
     while True:
         event = await event_queue.get()
@@ -65,6 +66,7 @@ async def read_from_queue():
 
 def handle_exit(sig, frame):
     asyncio.get_event_loop().create_task(cancel_orders_and_exit())
+
 
 async def cancel_orders_and_exit():
     logger.info("Cancelling all orders on MEXC...")

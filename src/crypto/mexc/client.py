@@ -114,9 +114,6 @@ class MexcClient(ExchangeClient):
                             result.ParseFromString(message)
 
                             data = MessageToDict(result)
-                            # print(data)
-
-                            # data = json.loads(message)
 
                             if 'privateOrders' in data:
                                 data = data['privateOrders']
@@ -185,6 +182,7 @@ class MexcClient(ExchangeClient):
             except Exception as e:
                 logger.error(f"Error: {e}")
                 await asyncio.sleep(5)
+
 
     async def get_balance_snapshot(self):
         try:
@@ -294,6 +292,7 @@ class MexcClient(ExchangeClient):
                 logger.error(f'WebSocket connection error: {e}')
                 await asyncio.sleep(5)
 
+
     async def place_limit_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, side: str, order_type: str, size: Decimal, price: Decimal):
         async with self.lock:
             symbol = first_currency.value + second_currency.value
@@ -358,6 +357,7 @@ class MexcClient(ExchangeClient):
                     logger.error(f'Order cancellation failed: {data}, order_id: {order_id}')
                 #     logger.info(f"Order was cancelled on MEXC, id: {order_id}, data: {data}")
 
+
     async def cancel_all_orders(self):
         base_url = 'https://api.mexc.com'
         timestamp = round(time.time() * 1000)
@@ -382,5 +382,3 @@ class MexcClient(ExchangeClient):
             logger.info(f"Cancelled orders: {response.json()}")
         else:
             logger.error(f'{response.status_code}, {response.text}')
-
-
