@@ -117,9 +117,11 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift # there was 2
     logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
 
+
+
     if len(active_orders.asks) > 0 and active_orders.asks[0].price == act_ask and active_orders.asks[0].size > Decimal('10000'):
         price = act_ask
-        size = Decimal(random.randint(1_000, 2_000))
+        size = Decimal(random.randint(5_000, 10_000))
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT,order_id=active_orders.asks[0].id)
         await asyncio.sleep(0.1)
 
@@ -149,6 +151,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         if not found:
             balances = mexc_client.get_balance()
             size = Decimal(min(random.randint(8_000, 10_000), balances['RMV']['free'] * Decimal('0.999')))
+            size = Decimal(random.randint(0, int(balances['RMV']['free'] / Decimal('5'))))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or balances['RMV']['free'] <= 400: # order value can't be less than 1 USDT
