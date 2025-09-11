@@ -395,3 +395,32 @@ class MexcClient(ExchangeClient):
             logger.info(f"Cancelled orders: {response.json()}")
         else:
             logger.error(f'{response.status_code}, {response.text}')
+
+    # @staticmethod
+    # async def get_last_trade(first_currency: CryptoCurrency, second_currency: CryptoCurrency):
+    #     symbol = first_currency.value + second_currency.value
+    #
+    #     url = f"https://www.mexc.com/api/v3/trades"
+    #     params = {
+    #         'symbol': symbol.upper()
+    #     }
+    #     # print(url)
+    #
+    #     async with aiohttp.ClientSession() as session:
+    #         async with session.get(url, params=params) as response:
+    #             data = await response.json()
+    #             return data[0] if data else None
+    # @staticmethod
+    # async def get_last_trade(first_currency: CryptoCurrency, second_currency: CryptoCurrency):
+    #     # Construct the symbol in the correct format: "RMVUSDT"
+    #     symbol = f"{first_currency.value.upper()}{second_currency.value.upper()}"
+    #
+    #     url = f"https://www.mexc.com/api/v2/market/deals?symbol={symbol}"
+    #     async with aiohttp.ClientSession() as session:
+    #         async with session.get(url) as resp:
+    #             if resp.status != 200:
+    #                 raise Exception(f"MEXC API returned status {resp.status}")
+    #             data = await resp.json()
+    #             if data.get("success") and data.get("data"):
+    #                 return data["data"][0]  # Return the most recent trade
+    #             return None
