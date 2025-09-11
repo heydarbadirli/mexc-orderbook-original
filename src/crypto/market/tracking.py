@@ -461,7 +461,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[bid_id].id)
 
                 while last_len == len(active_orders.bids) and cancellation is not None:
-                    logger.ingo(1)
+                    logger.info(1)
                     await asyncio.sleep(0.1)
 
                 order_id = None
