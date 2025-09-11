@@ -156,7 +156,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or balances['RMV']['free'] <= 400: # order value can't be less than 1 USDT
-                logger.error('To small balance')
+                # logger.error('To small balance')
                 break
 
             sell_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='sell',order_type='limit', size=size, price=act_ask)
@@ -180,7 +180,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or balances['USDT']['free'] <= Decimal('1.5'): # order value can't be less than 1 USDT
-                logger.error('To small balance')
+                # logger.error('To small balance')
                 break
 
             buy_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy',order_type='limit', size=size, price=act_bid)
