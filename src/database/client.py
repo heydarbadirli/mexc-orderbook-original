@@ -82,6 +82,9 @@ class DatabaseClient:
 
 
     async def record_order(self, order: DatabaseOrder, table_name: str):
+        if table_name == 'orders':
+            logger.info(f'Recording order: {order}')
+
         async with self.pool.acquire() as connection:
             try:
                 async with connection.cursor() as cursor:

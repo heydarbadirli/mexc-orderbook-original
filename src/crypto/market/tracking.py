@@ -115,7 +115,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift # there was 2
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift # there was 2
-    logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
+    # logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
 
 
 

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from decimal import Decimal, getcontext
 from datetime import datetime
 from src.crypto.mexc.client import MexcClient
-from src.model import CryptoCurrency, DatabaseMarketState, QueueEvent, EventType
+from src.model import CryptoCurrency, DatabaseMarketState, QueueEvent, EventType, DatabaseOrder
 from src.crypto.kucoin.client import KucoinClient
 from src.crypto.market.tracking import update_list_of_active_orders, manage_orders, track_market_spread, track_market_depth, record_our_orders, reset_orders
 from src.crypto.market.calculations import calculate_market_depth, calculate_fair_price
@@ -57,7 +57,17 @@ async def read_from_queue():
                 await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client, database_client=database_client)
                 await track_market_depth(mexc_client=mexc_client, database_client=database_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
             elif event.type == EventType.FILLED_ORDER:
-                await update_list_of_active_orders(data=event.data, database_client=database_client)
+
+                side = 'buy' if event.data['tradeType'] == 1 else 'sell'
+                size = Decimal(str(event.data['cumulativeQuantity']))
+                price = Decimal(str(event.data['price']))
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                order_id = event.data['id']
+
+                order = DatabaseOrder(pair='RMV-USDT', side=side, price=price, size=size, timestamp=timestamp,order_id=order_id)
+                await database_client.record_order(order=order, table_name="orders")
+
+                # await update_list_of_active_orders(data=event.data, database_client=database_client)
         except Exception as e:
             logger.error(f"error: {e}")
 
