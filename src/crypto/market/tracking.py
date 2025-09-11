@@ -282,7 +282,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         elif active_orders.asks[i].size > 100_000:
             size = Decimal(random.randint(50_000, 100_000))
 
-        if (i == 0 and active_orders.asks[i].size > 20_000) or (active_orders.asks[i].price > upper_bound and active_orders.asks[i].size > 20_000) or active_orders.asks[i].size > 050_000:
+        if (i == 0 and active_orders.asks[i].size > 20_000) or (active_orders.asks[i].price > upper_bound and active_orders.asks[i].size > 20_000) or active_orders.asks[i].size > 100_000:
             price = active_orders.asks[i].price
 
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[i].id)
