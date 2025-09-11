@@ -14,6 +14,7 @@ import aiohttp
 import asyncio
 from urllib.parse import urlencode
 from datetime import datetime
+import inspect
 
 class MexcClient(ExchangeClient):
     def __init__(self, api_key: str, api_secret: str, database_client: DatabaseClient, add_to_event_queue=None):
@@ -335,9 +336,19 @@ class MexcClient(ExchangeClient):
                     if response.status == 200:
                         data = await response.json()
                         # logger.info(f"Successfully placed order: {data}")
+                        # caller_frame = inspect.stack()[1]
+                        # caller_file = caller_frame.filename
+                        # caller_line = caller_frame.lineno
+                        # caller_func = caller_frame.function
+                        # print(f"Called from {caller_func} in {caller_file} at line {caller_line}")
                         return data['orderId']
                     else:
                         logger.error(f'Order failed: {text}, price: {price}, size: {size}, balances: {self.balance}')
+                        caller_frame = inspect.stack()[1]
+                        caller_file = caller_frame.filename
+                        caller_line = caller_frame.lineno
+                        caller_func = caller_frame.function
+                        print(f"Called from {caller_func} in {caller_file} at line {caller_line}")
                         return None
 
 
@@ -364,11 +375,22 @@ class MexcClient(ExchangeClient):
                 data = await response.json()
 
                 if response.status == 200:
-                    ...
                     # logger.info(f'Successfully canceled order: {data}')
+                    # caller_frame = inspect.stack()[1]
+                    # caller_file = caller_frame.filename
+                    # caller_line = caller_frame.lineno
+                    # caller_func = caller_frame.function
+                    return data
+                    # ...
+
                 else:
                     logger.error(f'Order cancellation failed: {data}, order_id: {order_id}')
+                    caller_frame = inspect.stack()[1]
+                    caller_file = caller_frame.filename
+                    caller_line = caller_frame.lineno
+                    caller_func = caller_frame.function
                 #     logger.info(f"Order was cancelled on MEXC, id: {order_id}, data: {data}")
+                    return None
 
 
     async def cancel_all_orders(self):
