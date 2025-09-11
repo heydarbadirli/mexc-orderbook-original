@@ -119,7 +119,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     if len(active_orders.asks) > 0 and active_orders.asks[0].price == act_ask and active_orders.asks[0].size > Decimal('10000'):
         price = act_ask
-        size = Decimal(random.randint(5_000, 10_000))
+        size = Decimal(random.randint(1_000, 2_000))
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT,order_id=active_orders.asks[0].id)
         await asyncio.sleep(0.1)
 
