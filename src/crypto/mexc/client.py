@@ -334,9 +334,10 @@ class MexcClient(ExchangeClient):
                     text = await response.text()
                     if response.status == 200:
                         data = await response.json()
+                        # logger.info(f"Successfully placed order: {data}")
                         return data['orderId']
                     else:
-                        logger.error(f'Order failed: {text}, price: {price}, size: {size}, balances: {self.balances}')
+                        logger.error(f'Order failed: {text}, price: {price}, size: {size}, balances: {self.balance}')
                         return None
 
 
@@ -350,6 +351,7 @@ class MexcClient(ExchangeClient):
             'symbol': symbol.upper(),
             'orderId': order_id,
             'timestamp': timestamp,
+            'recvWindow': 60000,
             'api_key': self.api_key
         }
 

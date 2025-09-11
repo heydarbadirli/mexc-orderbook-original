@@ -67,10 +67,13 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal(2))
     if fair_price is None:
         return
-    balances = mexc_client.get_balance()
-    full_usdt_balance = balances['USDT']['free'] + balances['USDT']['locked']
-    full_rmv_balance = balances['RMV']['free'] + balances['RMV']['locked']
-    full_rmv_value = (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
+    balance = mexc_client.get_balance()
+    # full_usdt_balance = balances['USDT']['free'] + balances['USDT']['locked']
+    if 'RMV' not in balance:
+        return
+
+    full_rmv_balance = balance['RMV']['free'] + balance['RMV']['locked']
+    # full_rmv_value = (balances['RMV']['free'] + balances['RMV']['locked']) * fair_price
     ask_shift = 0
     bid_shift = 0
 
@@ -124,20 +127,24 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift # there was 2
     # logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
 
+    last_len = len(active_orders.asks)
     if len(active_orders.asks) > 0 and active_orders.asks[0].price == act_ask and active_orders.asks[0].size > Decimal('5_000'):
         price = act_ask
         size = Decimal(random.randint(2_000, 5_000))
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT,order_id=active_orders.asks[0].id)
-        await asyncio.sleep(0.1)
 
+        while last_len == len(active_orders.asks):
+            await asyncio.sleep(0.1)
         await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT,side='sell', order_type='limit', price=price, size=size)
 
+    last_len = len(active_orders.bids)
     if len(active_orders.bids) > 0 and active_orders.bids[0].price == act_bid and active_orders.bids[0].size > Decimal('5_000'):
         price = act_bid
         size = Decimal(random.randint(2_000, 5_000))
         await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT,order_id=active_orders.bids[0].id)
-        await asyncio.sleep(0.1)
 
+        while last_len == len(active_orders.bids):
+            await asyncio.sleep(0.1)
         await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT,side='buy', order_type='limit', price=price, size=size)
 
     last_len = len(active_orders.asks)
