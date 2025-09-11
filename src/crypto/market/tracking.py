@@ -364,7 +364,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     #     for bid in active_orders.bids:
     #         market_depth += bid.size * bid.price
 
-    # logger.warning(f'market depth: {market_depth}')
+    logger.warning(f'market depth: {market_depth}')
 
     if market_depth < expected_market_depth * Decimal('0.98'):
         mexc_orderbook = mexc_client.get_orderbook()
@@ -394,6 +394,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         stopper = 0
 
         while how_many_to_add_rmv > 1 and stopper < 100:
+            logger.info(f'how_many_to_add_rmv: {how_many_to_add_rmv}')
             if mexc_balance['RMV']['free'] < 400:
                 break
 
@@ -437,6 +438,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         stopper = 0
 
         while how_many_to_add_usdt > 1 and stopper < 100:
+            logger.info(f'how_many_to_add_usdt: {how_many_to_add_usdt}')
             if mexc_balance['USDT']['free'] < 1:
                 break
 
