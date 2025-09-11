@@ -171,6 +171,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         if not found:
             balances = mexc_client.get_balance()
             size = Decimal(min(random.randint(8_000, 10_000), balances['RMV']['free'] * Decimal('0.999')))
+            size = Decimal(random.randint(400, 500))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or balances['RMV']['free'] <= 400: # order value can't be less than 1 USDT
@@ -306,14 +307,14 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     for i in range(len(active_orders.bids) -1, -1, -1):
         size = Decimal(0)
 
-        if i == 0 and active_orders.bids[i].size > 20_000:
-            size = Decimal(random.randint(5_000, 10_000))
+        if i == 0 and active_orders.bids[i].size > 2_000:
+            size = Decimal(random.randint(500, 600))
         elif active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > 20_000:
             size = Decimal(random.randint(5_000, 10_000))
         elif active_orders.bids[i].size > 150_000:
             size = Decimal(random.randint(100_000, 120_000))
 
-        if (i == 0 and active_orders.bids[i].size > 20_000) and (active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > 20_000) or active_orders.bids[i].size > 150_000:
+        if (i == 0 and active_orders.bids[i].size > 2_000) and (active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > 20_000) or active_orders.bids[i].size > 150_000:
             price = active_orders.bids[i].price
 
             await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[i].id)
