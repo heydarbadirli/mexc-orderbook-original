@@ -76,9 +76,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     if full_rmv_balance < INVENTORY_BALANCE:
         ask_shift += MEXC_TICK_SIZE
-        bid_shift += MEXC_TICK_SIZE
     else:
-        ask_shift -= MEXC_TICK_SIZE
         bid_shift -= MEXC_TICK_SIZE
 
     if full_rmv_balance - INVENTORY_BALANCE > 150_000:
@@ -99,8 +97,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     elif full_rmv_balance - INVENTORY_BALANCE < -37_500: # we are short
         bid_shift += MEXC_TICK_SIZE
         ask_shift += MEXC_TICK_SIZE
-
-
 
 
     if len(mexc_orderbook.asks) == 0 or len(mexc_orderbook.bids) == 0 or len(kucoin_orderbook.asks) == 0 or len(kucoin_orderbook.bids) == 0:
