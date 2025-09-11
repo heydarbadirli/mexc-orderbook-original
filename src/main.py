@@ -11,6 +11,7 @@ from src.crypto.market.calculations import calculate_market_depth, calculate_fai
 from loguru import logger
 from src.database.client import DatabaseClient
 import signal
+import traceback
 
 load_dotenv()
 
@@ -56,20 +57,21 @@ async def read_from_queue():
             elif event.type == EventType.MEXC_ORDERBOOK_UPDATE:
                 await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client, database_client=database_client)
                 await track_market_depth(mexc_client=mexc_client, database_client=database_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
-            elif event.type == EventType.FILLED_ORDER:
-
-                side = 'buy' if event.data['tradeType'] == 1 else 'sell'
-                size = Decimal(str(event.data['cumulativeQuantity']))
-                price = Decimal(str(event.data['price']))
-                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                order_id = event.data['id']
-
-                order = DatabaseOrder(pair='RMV-USDT', side=side, price=price, size=size, timestamp=timestamp,order_id=order_id)
-                await database_client.record_order(order=order, table_name="orders")
+            # elif event.type == EventType.FILLED_ORDER:
+            #
+            #     side = 'buy' if event.data['tradeType'] == 1 else 'sell'
+            #     size = Decimal(str(event.data['cumulativeQuantity']))
+            #     price = Decimal(str(event.data['price']))
+            #     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            #     order_id = event.data['id']
+            #
+            #     order = DatabaseOrder(pair='RMV-USDT', side=side, price=price, size=size, timestamp=timestamp,order_id=order_id)
+            #     await database_client.record_order(order=order, table_name="orders")
 
                 # await update_list_of_active_orders(data=event.data, database_client=database_client)
         except Exception as e:
-            logger.error(f"error: {e}")
+            logger.error(f"error type: {type(e)}, details: {e}")
+            logger.error(traceback.format_exc())
 
 
 # handle exit cancels all our active orders when the program ends
@@ -88,11 +90,9 @@ async def cancel_orders_and_exit():
 
 signal.signal(signal.SIGINT, handle_exit)
 
-
-mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, add_to_event_queue=add_to_event_queue)
-kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoin, api_passphrase=api_passphrase_kucoin, add_to_event_queue=add_to_event_queue)
 database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysql_password)
-
+mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, add_to_event_queue=add_to_event_queue, database_client=database_client)
+kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoin, api_passphrase=api_passphrase_kucoin, add_to_event_queue=add_to_event_queue)
 
 async def main(): # all o this run concurrently
     await mexc_client.cancel_all_orders()

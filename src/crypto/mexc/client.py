@@ -1,4 +1,5 @@
-from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient, EventType, QueueEvent
+from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient, EventType, QueueEvent, DatabaseOrder
+from src.database.client import DatabaseClient
 import websockets
 from src.crypto.mexc.websocket_proto import PushDataV3ApiWrapper_pb2
 from google.protobuf.json_format import MessageToDict
@@ -12,9 +13,10 @@ import requests
 import aiohttp
 import asyncio
 from urllib.parse import urlencode
+from datetime import datetime
 
 class MexcClient(ExchangeClient):
-    def __init__(self, api_key: str, api_secret: str, add_to_event_queue=None):
+    def __init__(self, api_key: str, api_secret: str, database_client: DatabaseClient, add_to_event_queue=None):
         self.api_key = api_key
         self.api_secret = api_secret
         self.orderbook = OrderBook(asks=[], bids=[])
@@ -24,6 +26,7 @@ class MexcClient(ExchangeClient):
         self.add_to_event_queue = add_to_event_queue
         self.lock = asyncio.Lock()
         self.active_orders = OrderBook(asks=[], bids=[])
+        self.database_client = database_client
 
 
     def get_orderbook(self):
@@ -154,8 +157,16 @@ class MexcClient(ExchangeClient):
                                                 break
 
                                     logger.info(f"tracking orders mexc, data: {data}")
-                                    event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
-                                    await self.add_to_event_queue(event=event)
+                                    # event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
+
+                                    trade_size = Decimal(str(data['cumulativeQuantity']))
+                                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                                    order_id = data['id']
+
+                                    order = DatabaseOrder(pair='RMV-USDT', side=side, price=price, size=trade_size, timestamp=timestamp, order_id=order_id)
+                                    await self.database_client.record_order(order=order, table_name="orders")
+                                    #
+                                    # await self.add_to_event_queue(event=event)
                                 elif data['status'] == 4 or data['status'] == 5:
                                     # logger.info(f'removing order: {data}')
                                     side = 'buy' if data['tradeType'] == 1 else 'sell'

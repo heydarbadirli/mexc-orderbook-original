@@ -1,7 +1,7 @@
 from loguru import logger
 from src.model import DatabaseOrder, DatabaseMarketState, OrderBook
 import aiomysql
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 class DatabaseClient:
     def __init__(self, host, user, password):
@@ -103,7 +103,7 @@ class DatabaseClient:
                     await cursor.execute("""
                         INSERT INTO market_states  (market_depth, fair_price, market_spread, usdt_balance, rmv_balance, rmv_value, timestamp)
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """, (market_state.market_depth, market_state.fair_price, market_state.market_spread, market_state.usdt_balance, market_state.rmv_balance, market_state.rmv_value, market_state.timestamp))
+                    """, (market_state.market_depth.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.fair_price.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.market_spread.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.usdt_balance.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.rmv_balance.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.rmv_value.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.timestamp))
                 except Exception as e:
                     logger.error(f"Failed to record market state: {e}")
 

@@ -91,6 +91,8 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
         if index is not None:
             mexc_liquidity -= active_bids[index].size
 
+    if mexc_liquidity + kucoin_liquidity == 0:
+        return None
 
     fair_price = ((mexc_mid_price * mexc_liquidity + kucoin_mid_price * kucoin_liquidity) / (mexc_liquidity + kucoin_liquidity)).quantize(Decimal('0.00001'), rounding=ROUND_HALF_UP)
 
