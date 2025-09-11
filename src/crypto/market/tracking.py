@@ -335,7 +335,15 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             else:
                 logger.error(f'Failed to place limit order: price: {price}, size: {size}')
 
+
     market_depth = calculate_market_depth(client=mexc_client, percent=percent)
+
+    if mexc_balance['RMV']['free'] < 2_000 or mexc_balance['USDT']['free'] < 5:
+        market_depth = 0
+        for ask in active_orders.asks:
+            market_depth += ask.size * ask.price
+        for bid in active_orders.bids:
+            market_depth += bid.size * bid.price
 
     if market_depth < expected_market_depth * Decimal('0.98'):
         mexc_orderbook = mexc_client.get_orderbook()
@@ -345,6 +353,10 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         rmv_balance = mexc_balance['RMV']['free']
         mid_price = (mexc_orderbook.asks[0].price + mexc_orderbook.bids[0].price) / 2
         rmv_value = mid_price * rmv_balance
+
+        if rmv_balance < 2_000 or usdt_balance < 5:
+            upper_bound = Decimal(1)
+            lower_bound = Decimal(0)
 
         total_value = usdt_balance + rmv_value
         how_many_to_add_usdt = how_many_to_add * (usdt_balance / total_value)
