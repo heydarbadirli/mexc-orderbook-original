@@ -356,7 +356,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
 
     # if mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'] < 2_000 or mexc_balance['USDT']['free'] + mexc_balance['USDT']['free'] < 5:
     # if len(active_orders.asks) == 0 or len(active_orders.bids) == 0:
-    market_spread = track_market_spread(client=mexc_client)
+    market_spread = await track_market_spread(client=mexc_client)
     if market_spread > Decimal('4'):
         market_depth = 0
         for ask in active_orders.asks:
