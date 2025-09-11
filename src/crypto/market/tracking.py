@@ -357,7 +357,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     # if mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'] < 2_000 or mexc_balance['USDT']['free'] + mexc_balance['USDT']['free'] < 5:
     # if len(active_orders.asks) == 0 or len(active_orders.bids) == 0:
     market_spread = track_market_spread(client=mexc_client)
-    if market_depth > 4:
+    if market_spread > Decimal('4'):
         market_depth = 0
         for ask in active_orders.asks:
             market_depth += ask.size * ask.price
@@ -375,7 +375,8 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         mid_price = (mexc_orderbook.asks[0].price + mexc_orderbook.bids[0].price) / 2
         rmv_value = mid_price * rmv_balance
 
-        if mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'] < 2_000 or mexc_balance['USDT']['free'] + mexc_balance['USDT']['free'] < 5:
+        # if mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'] < 2_000 or mexc_balance['USDT']['free'] + mexc_balance['USDT']['free'] < 5:
+        if market_spread > Decimal('4'):
             upper_bound = Decimal(1)
             lower_bound = Decimal(0)
 
