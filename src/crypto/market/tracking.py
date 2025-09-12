@@ -400,7 +400,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         stopper = 0
 
         while how_many_to_add_rmv > 1 and stopper < 100 and len(active_asks) > 1:
-            logger.info(f'how_many_to_add_rmv: {how_many_to_add_rmv, mexc_balance['RMV']['free']}')
+            logger.info(f'how_many_to_add_rmv: {how_many_to_add_rmv, mexc_balance["RMV"]["free"]}')
             if mexc_balance['RMV']['free'] < 400:
                 logger.error('to small balance')
                 break
