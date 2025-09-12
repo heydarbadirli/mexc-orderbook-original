@@ -170,9 +170,12 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
             await asyncio.sleep(0.1)
         last_len = len(active_orders.bids)
 
-    max_size = balance['RMV']['free'] / Decimal('5')
-    for _ in range(8):
+    numbers_of_asks = 8
+    max_size = balance['RMV']['free'] / Decimal(numbers_of_asks)
+
+    for _ in range(numbers_of_asks):
         found = any(d.price == act_ask for d in active_orders.asks)
+        logger.info(f'act ask: {act_ask, found}')
 
         if not found:
             size = Decimal(min(random.randint(2_000, 4_000), max_size))
@@ -194,10 +197,12 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
         act_ask += MEXC_TICK_SIZE
 
-    max_size_in_usdt = balance['USDT']['free'] / Decimal('5')
+    number_of_bids = 8
+    max_size_in_usdt = balance['USDT']['free'] / Decimal(number_of_bids)
 
-    for _ in range(8):
+    for _ in range(number_of_bids):
         found = any(d.price == act_bid for d in active_orders.bids)
+        logger.info(f'act bid: {act_bid, found}')
 
         if not found:
             size = Decimal(min(random.randint(2_000, 4_000), max_size_in_usdt / act_bid))
