@@ -357,16 +357,17 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     market_depth = calculate_market_depth(client=mexc_client, percent=percent)
 
     # if mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'] < 2_000 or mexc_balance['USDT']['free'] + mexc_balance['USDT']['free'] < 5:
-    # if len(active_orders.asks) == 0 or len(active_orders.bids) == 0:
+    if len(active_orders.asks) == 0 or len(active_orders.bids) == 0:
     # market_spread = await track_market_spread(client=mexc_client)
     # if market_spread > Decimal('4'):
-    #     market_depth = 0
-    #     for ask in active_orders.asks:
-    #         market_depth += ask.size * ask.price
-    #     for bid in active_orders.bids:
-    #         market_depth += bid.size * bid.price
+        market_depth = 0
+        for ask in active_orders.asks:
+            market_depth += ask.size * ask.price
+        for bid in active_orders.bids:
+            market_depth += bid.size * bid.price
 
     logger.warning(f'market depth: {market_depth}')
+    # logger.error(f'market spread {market_spread}')
 
     if market_depth < expected_market_depth * Decimal('0.98'):
         mexc_orderbook = mexc_client.get_orderbook()
@@ -377,10 +378,11 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         mid_price = (mexc_orderbook.asks[0].price + mexc_orderbook.bids[0].price) / 2
         rmv_value = mid_price * rmv_balance
 
+        if len(active_orders.asks) == 0 or len(active_orders.bids) == 0:
         # if mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'] < 2_000 or mexc_balance['USDT']['free'] + mexc_balance['USDT']['free'] < 5:
         # if market_spread > Decimal('4'):
-        #     upper_bound = Decimal(1)
-        #     lower_bound = Decimal(0)
+            upper_bound = Decimal(1)
+            lower_bound = Decimal(0)
 
         total_value = usdt_balance + rmv_value
         how_many_to_add_usdt = how_many_to_add * (usdt_balance / total_value)
@@ -396,7 +398,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         ask_id = len(active_asks) - 1
         stopper = 0
 
-        while how_many_to_add_rmv > 1 and stopper < 100:
+        while how_many_to_add_rmv > 1 and stopper < 100 and len(active_asks) > 1:
             logger.info(f'how_many_to_add_rmv: {how_many_to_add_rmv}')
             if mexc_balance['RMV']['free'] < 400:
                 break
@@ -443,8 +445,9 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         bid_id = len(active_bids) - 1
         stopper = 0
 
-        while how_many_to_add_usdt > 1 and stopper < 100:
-            logger.info(f'how_many_to_add_usdt: {how_many_to_add_usdt}')
+        while how_many_to_add_usdt > 1 and stopper < 100 and len(active_bids) > 1:
+            logger.info(f'how_many_to_add_usdt: {how_many_to_add_usdt, mexc_balance["USDT"]["free"]}')
+
             if mexc_balance['USDT']['free'] < 1:
                 break
 
@@ -454,9 +457,13 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             # if bid_id == 0 and active_orders.bids[bid_id].size > 10_000:
             #     bid_id -= 1
             #     continue
-            print(lower_bound, active_bids[bid_id].price, active_bids[bid_id].size)
+            # print(lower_bound, active_bids[bid_id].price, active_bids[bid_id].size)
+            print(f'lower bound: {lower_bound}')
+            print(f'bid id: {bid_id}, {active_bids[bid_id]}')
+            print(f'act bids: {active_bids}')
 
             if 1 <= bid_id and lower_bound <= active_bids[bid_id].price and active_bids[bid_id].size < Decimal(140_000):
+                logger.error('x')
                 price = active_bids[bid_id].price
 
                 to_add = Decimal(min(random.randint(20_000, 30_000), mexc_balance['USDT']['free'] / price * Decimal('0.999')))
@@ -465,7 +472,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
 
                 # last_len = len(active_orders.bids)
                 cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[bid_id].id)
-
+                logger.info(cancellation)
                 # while last_len == len(active_orders.bids) and cancellation is not None:
                 #     logger.info(1)
                 #     await asyncio.sleep(0.1)
