@@ -124,6 +124,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
             await asyncio.sleep(0.1)
         last_len = len(active_orders.bids)
 
+    # fair_price = Decimal('0.00260')
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift # there was 2
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift # there was 2
     logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
@@ -400,7 +401,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         stopper = 0
 
         while how_many_to_add_rmv > 1 and stopper < 100 and len(active_asks) > 1:
-            logger.info(f'how_many_to_add_rmv: {how_many_to_add_rmv, mexc_balance["RMV"]["free"]}')
+            # logger.info(f'how_many_to_add_rmv: {how_many_to_add_rmv, mexc_balance["RMV"]["free"]}')
             if mexc_balance['RMV']['free'] < 400:
                 logger.error('to small balance')
                 break
@@ -412,8 +413,9 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             # if ask_id == 0 and active_orders.asks[ask_id].size > 10_000:
             #     ask_id -= 1
             #     continue
-            logger.info(f'ask_id: {ask_id}, upper_bound" {upper_bound}, act_ask: {active_asks[ask_id]}')
-            if 1 <= ask_id and upper_bound >= active_asks[ask_id].price and active_asks[ask_id].size < Decimal(140_000):
+            # logger.info(f'ask_id: {ask_id}, upper_bound" {upper_bound}, act_ask: {active_asks[ask_id]}')
+            # and upper_bound >= active_asks[ask_id].price
+            if 1 <= ask_id and active_asks[ask_id].size < Decimal(140_000):
                 price = active_asks[ask_id].price
 
                 to_add = Decimal(min(random.randint(8_000, 10_000), mexc_balance['RMV']['free'] * Decimal('0.999')))
@@ -436,7 +438,9 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                     order = DatabaseOrder(pair='RMV-USDT', side='sell', price=price, size=size, order_id=order_id, timestamp=timestamp)
                     await database_client.record_order(order=order, table_name="every_order_placed")
 
-                    how_many_to_add_rmv -= to_add * price
+                    if upper_bound >= active_asks[ask_id].price:
+                        how_many_to_add_rmv -= to_add * price
+
                     active_asks[ask_id] = OrderLevel(id=order_id, price=price, size=size)
                 else:
                     logger.error(f'Failed to place limit order: price: {price}, size: {size}, balances: {mexc_balance}')
@@ -449,7 +453,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         stopper = 0
 
         while how_many_to_add_usdt > 1 and stopper < 100 and len(active_bids) > 1:
-            logger.info(f'how_many_to_add_usdt: {how_many_to_add_usdt, mexc_balance["USDT"]["free"]}')
+            # logger.info(f'how_many_to_add_usdt: {how_many_to_add_usdt, mexc_balance["USDT"]["free"]}')
 
             if mexc_balance['USDT']['free'] < 1:
                 logger.error('to small balance')
@@ -467,8 +471,9 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             # print(f'bid id: {bid_id}, {active_bids[bid_id]}')
             # print(f'act bids: {active_bids}')
 
-            logger.info(f'ask_id: {bid_id}, lower_bound" {lower_bound}, act_bid: {active_bids[bid_id]}')
-            if 1 <= bid_id and lower_bound <= active_bids[bid_id].price and active_bids[bid_id].size < Decimal(140_000):
+            # logger.info(f'ask_id: {bid_id}, lower_bound" {lower_bound}, act_bid: {active_bids[bid_id]}')
+            # and lower_bound <= active_bids[bid_id].price
+            if 1 <= bid_id and active_bids[bid_id].size < Decimal(140_000):
                 # logger.error('x')
                 price = active_bids[bid_id].price
 
@@ -492,7 +497,9 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                     order = DatabaseOrder(pair='RMV-USDT', side='buy', price=price, size=size, order_id=order_id,timestamp=timestamp)
                     await database_client.record_order(order=order, table_name="every_order_placed")
 
-                    how_many_to_add_usdt -= to_add * price
+                    if lower_bound <= active_bids[bid_id].price:
+                        how_many_to_add_usdt -= to_add * price
+
                     active_bids[bid_id] = OrderLevel(id=order_id, price=price, size=size)
                 else:
                     logger.error(f'Failed to place limit order: price: {price}, size: {size}, balances: {mexc_balance}')
