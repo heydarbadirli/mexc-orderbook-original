@@ -173,7 +173,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
         if not found:
             balances = mexc_client.get_balance()
-            size = Decimal(min(random.randint(4000, 5000), balances['RMV']['free'] * Decimal('0.999')))
+            size = Decimal(min(random.randint(1_000, 2_000), balances['RMV']['free'] * Decimal('0.999')))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or balances['RMV']['free'] <= 400: # order value can't be less than 1 USDT
@@ -197,7 +197,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
         if not found:
             balances = mexc_client.get_balance()
-            size = Decimal(min(random.randint(4000, 5000), balances['USDT']['free'] / act_bid * Decimal('0.999')))
+            size = Decimal(min(random.randint(1_000, 2_000), balances['USDT']['free'] / act_bid * Decimal('0.999')))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or balances['USDT']['free'] <= Decimal('1.5'): # order value can't be less than 1 USDT
