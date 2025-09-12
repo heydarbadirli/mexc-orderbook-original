@@ -296,11 +296,11 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             size = Decimal(random.randint(5_000, 10_000))
         elif active_orders.asks[i].price > upper_bound and active_orders.asks[i].size > 20_000:
             size = Decimal(random.randint(5_000, 10_000))
-        elif active_orders.asks[i].size > 200_000:
-            size = Decimal(random.randint(150_000, 200_000))
+        elif active_orders.asks[i].size > 250_000:
+            size = Decimal(random.randint(150_000, 250_000))
 
         last_len = len(active_orders.asks)
-        if (i == 0 and active_orders.asks[i].size > 20_000) or (active_orders.asks[i].price > upper_bound and active_orders.asks[i].size > 20_000) or active_orders.asks[i].size > 200_000:
+        if (i == 0 and active_orders.asks[i].size > 20_000) or (active_orders.asks[i].price > upper_bound and active_orders.asks[i].size > 20_000) or active_orders.asks[i].size > 250_000:
             price = active_orders.asks[i].price
 
             cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[i].id)
@@ -333,12 +333,12 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             size = Decimal(random.randint(5_000, 10_000))
         if active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > 20_000:
             size = Decimal(random.randint(5_000, 10_000))
-        elif active_orders.bids[i].size > 200_000:
-            size = Decimal(random.randint(150_000, 200_000))
+        elif active_orders.bids[i].size > 250_000:
+            size = Decimal(random.randint(150_000, 250_000))
 
         last_size = active_orders.bids[i].size
 
-        if (i == 0 and active_orders.bids[i].size > 20_000) and (active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > 20_000) or active_orders.bids[i].size > 200_000:
+        if (i == 0 and active_orders.bids[i].size > 20_000) and (active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > 20_000) or active_orders.bids[i].size > 250_000:
             price = active_orders.bids[i].price
 
             cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[i].id)
@@ -427,7 +427,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             #     continue
             # logger.info(f'ask_id: {ask_id}, upper_bound" {upper_bound}, act_ask: {active_asks[ask_id]}')
             # and upper_bound >= active_asks[ask_id].price
-            if 1 <= ask_id and active_asks[ask_id].size < Decimal(190_000) and upper_bound >= active_asks[ask_id].price:
+            if 1 <= ask_id and active_asks[ask_id].size < Decimal(240_000) and upper_bound >= active_asks[ask_id].price:
                 price = active_asks[ask_id].price
 
                 to_add = Decimal(min(random.randint(8_000, 10_000), mexc_balance['RMV']['free'] * Decimal('0.999')))
@@ -489,7 +489,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
 
             # logger.info(f'ask_id: {bid_id}, lower_bound" {lower_bound}, act_bid: {active_bids[bid_id]}')
             # and lower_bound <= active_bids[bid_id].price
-            if 1 <= bid_id and active_bids[bid_id].size < Decimal(190_000) and lower_bound <= active_bids[bid_id].price:
+            if 1 <= bid_id and active_bids[bid_id].size < Decimal(240_000) and lower_bound <= active_bids[bid_id].price:
                 # logger.error('x')
                 price = active_bids[bid_id].price
 
