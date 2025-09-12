@@ -70,8 +70,8 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
     lower_bound = mexc_mid_price * Decimal(1 - percent / 100)
 
     # mexc_liquidity = 0
-    kucoin_liquidity = calculate_market_depth(client=kucoin_client, percent=Decimal(5))
-    mexc_liquidity = calculate_market_depth(client=mexc_client, percent=Decimal(5))
+    kucoin_liquidity = calculate_market_depth(client=kucoin_client, percent=Decimal(3))
+    mexc_liquidity = calculate_market_depth(client=mexc_client, percent=Decimal(3))
 
     # for ask in mexc_orderbook.asks:
     #     if ask.price > upper_bound:
