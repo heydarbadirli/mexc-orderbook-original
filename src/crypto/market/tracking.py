@@ -153,7 +153,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
             await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT,side='buy', order_type='limit', price=price, size=size)
 
     last_len = len(active_orders.asks)
-    while len(active_orders.asks) > 0 and active_orders.asks[len(active_orders.asks) - 1].price >= act_ask + 5 * MEXC_TICK_SIZE:
+    while len(active_orders.asks) > 0 and active_orders.asks[len(active_orders.asks) - 1].price >= act_ask + 8 * MEXC_TICK_SIZE:
         logger.info(f'Cancelled, ask price to high: {active_orders.asks[len(active_orders.asks) - 1]}')
         cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[len(active_orders.asks) - 1].id)
 
@@ -162,7 +162,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         last_len = len(active_orders.asks)
 
     last_len = len(active_orders.bids)
-    while len(active_orders.bids) > 0 and active_orders.bids[len(active_orders.bids) - 1].price <= act_bid - 5 * MEXC_TICK_SIZE:
+    while len(active_orders.bids) > 0 and active_orders.bids[len(active_orders.bids) - 1].price <= act_bid - 8 * MEXC_TICK_SIZE:
         logger.info(f'Cancelled, bid price to low: {active_orders.bids[len(active_orders.bids) - 1]}')
         cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[len(active_orders.bids) - 1].id)
 
@@ -171,11 +171,11 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         last_len = len(active_orders.bids)
 
     max_size = balance['RMV']['free'] / Decimal('5')
-    for _ in range(5):
+    for _ in range(8):
         found = any(d.price == act_ask for d in active_orders.asks)
 
         if not found:
-            size = Decimal(min(random.randint(1_000, 2_000), max_size))
+            size = Decimal(min(random.randint(2_000, 4_000), max_size))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or balance['RMV']['free'] <= 400: # order value can't be less than 1 USDT
@@ -196,11 +196,11 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     max_size_in_usdt = balance['USDT']['free'] / Decimal('5')
 
-    for _ in range(5):
+    for _ in range(8):
         found = any(d.price == act_bid for d in active_orders.bids)
 
         if not found:
-            size = Decimal(min(random.randint(1_000, 2_000), max_size_in_usdt / act_bid))
+            size = Decimal(min(random.randint(2_000, 4_000), max_size_in_usdt / act_bid))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
             if size <= 0 or balance['USDT']['free'] <= Decimal('1.5'): # order value can't be less than 1 USDT
@@ -404,12 +404,16 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         while how_many_to_add_rmv > 1 and stopper < 100 and len(active_asks) > 1:
             # logger.info(f'how_many_to_add_rmv: {how_many_to_add_rmv, mexc_balance["RMV"]["free"]}')
             if mexc_balance['RMV']['free'] < 400:
-                # logger.error('to small balance')
+                logger.error('to small balance')
                 break
 
             if ask_id < 1:
                 # logger.warning(f'ask id < 1: {ask_id}')
                 ask_id = len(active_asks) - 1
+
+            if ask_id >= 5 and active_asks[ask_id].size > 5_000:
+                ask_id -= 1
+                continue
 
 
             # if ask_id == 0 and active_orders.asks[ask_id].size > 10_000:
@@ -464,6 +468,10 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             if bid_id < 1:
                 # logger.info(f'bid_id < 1: {bid_id}')
                 bid_id = len(active_bids) - 1
+
+            if bid_id >= 5 and active_bids[bid_id].size >= 5_000:
+                bid_id -= 1
+                continue
 
             # if bid_id == 0 and active_orders.bids[bid_id].size > 10_000:
             #     bid_id -= 1
