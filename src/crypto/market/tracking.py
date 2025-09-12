@@ -130,6 +130,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
 
     act_bid = min(act_bid, Decimal('0.00257'))
+    act_ask = act_bid + 5 * MEXC_TICK_SIZE
 
     last_len = len(active_orders.asks)
     if len(active_orders.asks) > 0 and active_orders.asks[0].price == act_ask and active_orders.asks[0].size > Decimal('5_000'):
