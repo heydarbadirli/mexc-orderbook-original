@@ -129,6 +129,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift # there was 2
     logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
 
+
     last_len = len(active_orders.asks)
     if len(active_orders.asks) > 0 and active_orders.asks[0].price == act_ask and active_orders.asks[0].size > Decimal('5_000'):
         price = act_ask
@@ -284,7 +285,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     for i in range(len(active_orders.asks) - 1, -1, -1):
         size = Decimal(0)
 
-        if i == 0 and active_orders.asks[i].size > 20_000:
+        if (i == 0 or i == 1) and active_orders.asks[i].size > 20_000:
             size = Decimal(random.randint(5_000, 10_000))
         elif active_orders.asks[i].price > upper_bound and active_orders.asks[i].size > 20_000:
             size = Decimal(random.randint(5_000, 10_000))
@@ -321,7 +322,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     for i in range(len(active_orders.bids) -1, -1, -1):
         size = Decimal(0)
 
-        if i == 0 and active_orders.bids[i].size > 20_000:
+        if (i == 0 or i == 1) and active_orders.bids[i].size > 20_000:
             size = Decimal(random.randint(5_000, 10_000))
         elif active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > 20_000:
             size = Decimal(random.randint(5_000, 10_000))
@@ -403,12 +404,13 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         while how_many_to_add_rmv > 1 and stopper < 100 and len(active_asks) > 1:
             # logger.info(f'how_many_to_add_rmv: {how_many_to_add_rmv, mexc_balance["RMV"]["free"]}')
             if mexc_balance['RMV']['free'] < 400:
-                logger.error('to small balance')
+                # logger.error('to small balance')
                 break
 
-            if ask_id < 1:
-                logger.warning(f'ask id < 1: {ask_id}')
+            if ask_id < 1 or (ask_id == 1 and active_asks[ask_id].size > Decimal(10_000)):
+                # logger.warning(f'ask id < 1: {ask_id}')
                 ask_id = len(active_asks) - 1
+
 
             # if ask_id == 0 and active_orders.asks[ask_id].size > 10_000:
             #     ask_id -= 1
@@ -456,11 +458,11 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             # logger.info(f'how_many_to_add_usdt: {how_many_to_add_usdt, mexc_balance["USDT"]["free"]}')
 
             if mexc_balance['USDT']['free'] < 1:
-                logger.error('to small balance')
+                # logger.error('to small balance')
                 break
 
-            if bid_id < 1:
-                logger.info(f'bid_id < 1: {bid_id}')
+            if bid_id < 1 or ( bid_id == 1 and active_bids[bid_id].size > Decimal(10_000)):
+                # logger.info(f'bid_id < 1: {bid_id}')
                 bid_id = len(active_bids) - 1
 
             # if bid_id == 0 and active_orders.bids[bid_id].size > 10_000:
