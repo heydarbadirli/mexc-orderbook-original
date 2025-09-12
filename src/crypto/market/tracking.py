@@ -427,7 +427,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             #     continue
             # logger.info(f'ask_id: {ask_id}, upper_bound" {upper_bound}, act_ask: {active_asks[ask_id]}')
             # and upper_bound >= active_asks[ask_id].price
-            if 1 <= ask_id and active_asks[ask_id].size < Decimal(190_000): # and upper_bound >= active_asks[ask_id].price
+            if 1 <= ask_id and active_asks[ask_id].size < Decimal(190_000) and upper_bound >= active_asks[ask_id].price:
                 price = active_asks[ask_id].price
 
                 to_add = Decimal(min(random.randint(8_000, 10_000), mexc_balance['RMV']['free'] * Decimal('0.999')))
@@ -489,7 +489,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
 
             # logger.info(f'ask_id: {bid_id}, lower_bound" {lower_bound}, act_bid: {active_bids[bid_id]}')
             # and lower_bound <= active_bids[bid_id].price
-            if 1 <= bid_id and active_bids[bid_id].size < Decimal(190_000): # and lower_bound <= active_bids[bid_id].price
+            if 1 <= bid_id and active_bids[bid_id].size < Decimal(190_000) and lower_bound <= active_bids[bid_id].price:
                 # logger.error('x')
                 price = active_bids[bid_id].price
 
