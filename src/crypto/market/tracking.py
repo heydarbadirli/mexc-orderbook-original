@@ -172,7 +172,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
             await asyncio.sleep(0.1)
         last_len = len(active_orders.bids)
 
-    numbers_of_asks = 8
+    numbers_of_asks = 5
     max_size = balance['RMV']['free'] / Decimal(numbers_of_asks)
 
     for _ in range(numbers_of_asks):
@@ -199,7 +199,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
         act_ask += MEXC_TICK_SIZE
 
-    number_of_bids = 8
+    number_of_bids = 5
     max_size_in_usdt = balance['USDT']['free'] / Decimal(number_of_bids)
 
     for _ in range(number_of_bids):
