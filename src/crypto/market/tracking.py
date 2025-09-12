@@ -417,7 +417,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 # logger.warning(f'ask id < 1: {ask_id}')
                 ask_id = len(active_asks) - 1
 
-            if ask_id >= 5 and active_asks[ask_id].size > 5_000:
+            if ask_id >= 4 and active_asks[ask_id].size > 5_000:
                 ask_id -= 1
                 continue
 
@@ -475,7 +475,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 # logger.info(f'bid_id < 1: {bid_id}')
                 bid_id = len(active_bids) - 1
 
-            if bid_id >= 5 and active_bids[bid_id].size >= 5_000:
+            if bid_id >= 4 and active_bids[bid_id].size >= 5_000:
                 bid_id -= 1
                 continue
 
