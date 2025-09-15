@@ -219,7 +219,10 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
             size = Decimal(min(random.randint(2_000, 4_000), max_size))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
-            if size <= 0 or balance['RMV']['free'] <= 400: # order value can't be less than 1 USDT
+            if max_size <= Decimal('400'):
+                max_size = balance['RMV']['free']
+
+            if size <= 0 or balance['RMV']['free'] <= Decimal('400'): # order value can't be less than 1 USDT
                 # logger.error('To small balance')
                 break
 
@@ -244,6 +247,9 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         if not found:
             size = Decimal(min(random.randint(2_000, 4_000), max_size_in_usdt / act_bid))
             size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
+
+            if max_size <= Decimal('1.5'):
+                max_size = balance['USDT']['free']
 
             if size <= 0 or balance['USDT']['free'] <= Decimal('1.5'): # order value can't be less than 1 USDT
                 # logger.error('To small balance')
@@ -339,7 +345,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             price = active_orders.asks[i].price
 
             cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[i].id)
-            print(cancellation)
+            # print(cancellation)
             while last_len == len(active_orders.asks) and cancellation is not None:
                 await asyncio.sleep(0.1)
 
@@ -352,6 +358,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
 
             order_id = None
             if cancellation is not None:
+                del active_orders.asks[i]
                 order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
 
             if order_id is not None:
