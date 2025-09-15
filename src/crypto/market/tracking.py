@@ -44,12 +44,12 @@ async def fix_price_if_too_large_inventory_imbalance(mexc_client: MexcClient, ku
         amount_sold = mexc_client.get_amount_sold()
         amount_bought = mexc_client.get_amount_bought()
 
-        if amount_sold - amount_bought > Decimal('200_000'):
+        if amount_sold - amount_bought > INVENTORY_BALANCE:
             fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal(2))
             max_bid_price = fair_price - 2 * MEXC_TICK_SIZE
             # fixed_fair_price = fair_price
 
-        elif amount_bought - amount_sold > Decimal('200_000'):
+        elif amount_bought - amount_sold > INVENTORY_BALANCE:
             fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal(2))
             min_ask_price = fair_price + 2 * MEXC_TICK_SIZE
 
