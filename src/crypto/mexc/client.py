@@ -366,12 +366,12 @@ class MexcClient(ExchangeClient):
                     text = await response.text()
                     if response.status == 200:
                         data = await response.json()
-                        # logger.info(f"Successfully placed order: {data}")
-                        # caller_frame = inspect.stack()[1]
-                        # caller_file = caller_frame.filename
-                        # caller_line = caller_frame.lineno
-                        # caller_func = caller_frame.function
-                        # print(f"Called from {caller_func} in {caller_file} at line {caller_line}")
+                        logger.info(f"Successfully placed order: {data}")
+                        caller_frame = inspect.stack()[1]
+                        caller_file = caller_frame.filename
+                        caller_line = caller_frame.lineno
+                        caller_func = caller_frame.function
+                        print(f"Called from {caller_func} in {caller_file} at line {caller_line}")
                         return data['orderId']
                     else:
                         logger.error(f'Order failed: {text}, price: {price}, size: {size}, balances: {self.balance}')
@@ -406,12 +406,12 @@ class MexcClient(ExchangeClient):
                 data = await response.json()
 
                 if response.status == 200:
-                    # logger.info(f'Successfully canceled order: {data}')
-                    # caller_frame = inspect.stack()[1]
-                    # caller_file = caller_frame.filename
-                    # caller_line = caller_frame.lineno
-                    # caller_func = caller_frame.function
-                    # print(f"Called from {caller_func} in {caller_file} at line {caller_line}")
+                    logger.info(f'Successfully canceled order: {data}')
+                    caller_frame = inspect.stack()[1]
+                    caller_file = caller_frame.filename
+                    caller_line = caller_frame.lineno
+                    caller_func = caller_frame.function
+                    print(f"Called from {caller_func} in {caller_file} at line {caller_line}")
                     return data
                     # ...
 

@@ -151,6 +151,14 @@ async def main(): # all o this run concurrently
         logger.info(f'len of active bids: {len(active_orders.bids)}')
         logger.info(f'bids: {active_orders.bids}')
 
+        for i in range(1, len(active_orders.asks)):
+            if active_orders.asks[i].price == active_orders.asks[i - 1].price:
+                logger.error('Something is wrong')
+
+        for i in range(1, len(active_orders.bids)):
+            if active_orders.bids[i].price == active_orders.bids[i - 1].price:
+                logger.error('Something is wrong')
+
         if fair_price is None:
             print()
             continue
