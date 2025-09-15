@@ -127,7 +127,7 @@ async def main(): # all o this run concurrently
     asyncio.create_task(read_from_queue())
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
-    asyncio.create_task(stop_program_if_balance_to_low())
+    # asyncio.create_task(stop_program_if_balance_to_low())
 
     asyncio.create_task(fix_price_if_too_large_inventory_imbalance(mexc_client=mexc_client, kucoin_client=kucoin_client))
     asyncio.create_task(mexc_client.reset_bought_and_sold_amounts())
