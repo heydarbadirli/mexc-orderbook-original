@@ -46,6 +46,7 @@ async def add_to_event_queue(event: QueueEvent):
 async def read_from_queue():
     while True:
         event = await event_queue.get()
+        logger.info(f'q size: {event_queue.qsize()}')
 
         if not event or event.type is None:
             logger.warning("Skipping invalid event: %s", event)
@@ -73,6 +74,20 @@ async def read_from_queue():
             logger.error(f"error type: {type(e)}, details: {e}")
             logger.error(traceback.format_exc())
 
+def stop_program():
+    raise KeyboardInterrupt
+
+async def stop_program_if_balance_to_low():
+    mexc_balance = mexc_client.get_balance()
+
+    while True:
+        await asyncio.sleep(1)
+
+        if 'USDT' not in mexc_balance or 'RMV' not in mexc_balance:
+            continue
+
+        if mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'] < Decimal('100') or mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'] < Decimal('40_000'):
+            stop_program()
 
 # handle exit cancels all our active orders when the program ends
 
@@ -92,7 +107,7 @@ signal.signal(signal.SIGINT, handle_exit)
 
 database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysql_password)
 mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, add_to_event_queue=add_to_event_queue, database_client=database_client)
-kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoin, api_passphrase=api_passphrase_kucoin, add_to_event_queue=add_to_event_queue)
+kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoin, api_passphrase=api_passphrase_kucoin, add_to_event_queue=add_to_event_queue, database_client=database_client)
 
 async def main(): # all o this run concurrently
     await asyncio.sleep(30)
@@ -111,6 +126,8 @@ async def main(): # all o this run concurrently
 
     asyncio.create_task(read_from_queue())
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
+
+    asyncio.create_task(stop_program_if_balance_to_low())
 
     mexc_balance = mexc_client.get_balance()
     active_orders = mexc_client.get_active_orders()
@@ -148,13 +165,13 @@ async def main(): # all o this run concurrently
 
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        await record_our_orders(timestamp=timestamp, database_client=database_client, mexc_client=mexc_client)
+        # await record_our_orders(timestamp=timestamp, database_client=database_client, mexc_client=mexc_client)
         market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'], rmv_balance=mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'], rmv_value=mexc_balance['RMV']['free'] * fair_price + mexc_balance['RMV']['locked'] * fair_price, timestamp=timestamp)
         await database_client.record_market_state(market_state=market_state)
-        kucoin_orderbook = kucoin_client.get_orderbook()
-        await database_client.record_orderbook(table="kucoin_orderbook", exchange="kucoin", orderbook=kucoin_orderbook, timestamp=timestamp)
-        mexc_orderbook = mexc_client.get_orderbook()
-        await database_client.record_orderbook(table="mexc_orderbook", exchange="mexc", orderbook=mexc_orderbook, timestamp=timestamp)
+        # kucoin_orderbook = kucoin_client.get_orderbook()
+        # await database_client.record_orderbook(table="kucoin_orderbook", exchange="kucoin", orderbook=kucoin_orderbook, timestamp=timestamp)
+        # mexc_orderbook = mexc_client.get_orderbook()
+        # await database_client.record_orderbook(table="mexc_orderbook", exchange="mexc", orderbook=mexc_orderbook, timestamp=timestamp)
         logger.info('end\n')
 
 if __name__ == '__main__':

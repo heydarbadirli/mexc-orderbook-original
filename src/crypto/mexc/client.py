@@ -119,6 +119,8 @@ class MexcClient(ExchangeClient):
 
                             data = MessageToDict(result)
 
+                            # logger.info(data)
+
                             if 'privateOrders' in data:
                                 data = data['privateOrders']
 
@@ -183,6 +185,9 @@ class MexcClient(ExchangeClient):
                                             if self.active_orders.asks[i].id == order_id:
                                                 del self.active_orders.asks[i]
                                                 break
+
+                                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                                await self.database_client.record_orderbook(table='our_orders', exchange='mexc', orderbook=self.active_orders, timestamp=timestamp)
 
                         except Exception as e:
                             logger.error(f"Error: {e}")
@@ -296,6 +301,10 @@ class MexcClient(ExchangeClient):
                                 continue
 
                             self.orderbook = OrderBook(asks=asks, bids=bids)
+
+                            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                            await self.database_client.record_orderbook(table='mexc_orderbook', exchange='mexc', orderbook=self.orderbook, timestamp=timestamp)
+
                             event = QueueEvent(type=EventType.MEXC_ORDERBOOK_UPDATE, data=data)
                             await self.add_to_event_queue(event=event)
                         except Exception as e:
@@ -380,6 +389,7 @@ class MexcClient(ExchangeClient):
                     # caller_file = caller_frame.filename
                     # caller_line = caller_frame.lineno
                     # caller_func = caller_frame.function
+                    # print(f"Called from {caller_func} in {caller_file} at line {caller_line}")
                     return data
                     # ...
 
@@ -389,7 +399,7 @@ class MexcClient(ExchangeClient):
                     caller_file = caller_frame.filename
                     caller_line = caller_frame.lineno
                     caller_func = caller_frame.function
-                #     logger.info(f"Order was cancelled on MEXC, id: {order_id}, data: {data}")
+                    logger.info(f"Order was cancelled on MEXC, id: {order_id}, data: {data}")
                     return None
 
 

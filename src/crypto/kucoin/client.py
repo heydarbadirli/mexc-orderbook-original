@@ -11,15 +11,18 @@ import time
 import base64
 import hmac
 import hashlib
+from src.database.client import DatabaseClient
+from datetime import datetime
 
 class KucoinClient(ExchangeClient):
-    def __init__(self, api_key: str, api_secret: str, api_passphrase: str, add_to_event_queue=None):
+    def __init__(self, api_key: str, api_secret: str, api_passphrase: str, database_client: DatabaseClient, add_to_event_queue=None):
         self.orderbook = OrderBook(asks=[], bids=[])
         self.balances = {}
         self.add_to_event_queue = add_to_event_queue
         self.api_key = api_key
         self.api_secret = api_secret
         self.api_passphrase = api_passphrase
+        self.database_client = database_client
 
 
     def get_orderbook(self):
@@ -77,6 +80,10 @@ class KucoinClient(ExchangeClient):
                                 continue
 
                             self.orderbook = OrderBook(asks=asks, bids=bids)
+
+                            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            await self.database_client.record_orderbook(table='kucoin_orderbook', exchange='kucoin', orderbook=self.orderbook, timestamp=timestamp)
+
                             event = QueueEvent(type=EventType.KUCOIN_ORDERBOOK_UPDATE, data=data)
                             await self.add_to_event_queue(event=event)
                         except Exception as e:
