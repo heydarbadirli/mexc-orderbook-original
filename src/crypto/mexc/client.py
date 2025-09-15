@@ -17,7 +17,7 @@ from datetime import datetime
 import inspect
 
 class MexcClient(ExchangeClient):
-    def __init__(self, api_key: str, api_secret: str, database_client: DatabaseClient, add_to_event_queue=None):
+    def  __init__(self, api_key: str, api_secret: str, database_client: DatabaseClient, add_to_event_queue=None):
         self.api_key = api_key
         self.api_secret = api_secret
         self.orderbook = OrderBook(asks=[], bids=[])
@@ -28,6 +28,9 @@ class MexcClient(ExchangeClient):
         self.lock = asyncio.Lock()
         self.active_orders = OrderBook(asks=[], bids=[])
         self.database_client = database_client
+
+        self.amount_sold = Decimal('0')
+        self.amount_bought = Decimal('0')
 
 
     def get_orderbook(self):
@@ -42,9 +45,23 @@ class MexcClient(ExchangeClient):
         return self.active_orders
 
 
+    def get_amount_bought(self):
+        return self.amount_bought
+
+
+    def get_amount_sold(self):
+        return self.amount_sold
+
+
     def get_signature(self, query_string: str):
         return hmac.new(self.api_secret.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest()
 
+
+    async def reset_bought_and_sold_amounts(self):
+        while True:
+            await asyncio.sleep(30 * 60)
+            self.amount_sold = Decimal('0')
+            self.amount_bought = Decimal('0')
 
     async def create_listen_key(self):
         url = self.rest_base_url + '/api/v3/userDataStream'
@@ -141,8 +158,11 @@ class MexcClient(ExchangeClient):
                                     order_id = data['id']
                                     price = Decimal(str(data['price']))
                                     size = Decimal(str(data['remainQuantity']))
+                                    trade_size = Decimal(str(data['cumulativeQuantity']))
 
                                     if side == 'buy':
+                                        self.amount_bought += trade_size
+
                                         for i in range(len(self.active_orders.bids) - 1, -1, -1):
                                             if self.active_orders.bids[i].id == order_id:
                                                 if data['status'] == 2:
@@ -151,6 +171,8 @@ class MexcClient(ExchangeClient):
                                                     self.active_orders.bids[i].size = size
                                                 break
                                     else:
+                                        self.amount_sold += trade_size
+
                                         for i in range(len(self.active_orders.asks) -1, -1, -1):
                                             if self.active_orders.asks[i].id == order_id:
                                                 if data['status'] == 2:
@@ -162,13 +184,13 @@ class MexcClient(ExchangeClient):
                                     logger.info(f"tracking orders mexc, data: {data}")
                                     # event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
 
-                                    trade_size = Decimal(str(data['cumulativeQuantity']))
                                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                                     order_id = data['id']
 
                                     order = DatabaseOrder(pair='RMV-USDT', side=side, price=price, size=trade_size, timestamp=timestamp, order_id=order_id)
                                     await self.database_client.record_order(order=order, table_name="orders")
-                                    #
+
+
                                     # await self.add_to_event_queue(event=event)
                                 elif data['status'] == 4 or data['status'] == 5:
                                     # logger.info(f'removing order: {data}')

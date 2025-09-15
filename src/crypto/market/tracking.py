@@ -8,7 +8,6 @@ from src.crypto.market.calculations import calculate_fair_price, calculate_marke
 from src.database.client import DatabaseClient
 from datetime import datetime
 from loguru import logger
-import copy
 
 # active_asks: list[OrderLevel] = []
 # active_bids: list[OrderLevel] = []
@@ -16,6 +15,10 @@ import copy
 MEXC_TICK_SIZE = Decimal('0.00001')
 
 INVENTORY_BALANCE = Decimal(320_000)
+
+min_ask_price = Decimal('0')
+max_bid_price = Decimal('0')
+fixed_fair_price = Decimal('0')
 
 async def reset_orders(mexc_client: MexcClient):
     # global active_bids, active_asks
@@ -27,10 +30,34 @@ async def reset_orders(mexc_client: MexcClient):
         # active_bids = []
         # active_asks = []
 
-async def record_our_orders(timestamp: str, mexc_client: MexcClient, database_client: DatabaseClient):
+# async def record_our_orders(timestamp: str, mexc_client: MexcClient, database_client: DatabaseClient):
+#     active_orders = mexc_client.get_active_orders()
+#     temp_orderbook = OrderBook(asks=active_orders.asks, bids=active_orders.bids)
+#     await database_client.record_orderbook(table="our_orders", exchange="None", orderbook=temp_orderbook, timestamp=timestamp)
+
+async def fix_price_if_too_large_inventory_imbalance(mexc_client: MexcClient, kucoin_client: KucoinClient):
+    global min_ask_price, max_bid_price
     active_orders = mexc_client.get_active_orders()
-    temp_orderbook = OrderBook(asks=active_orders.asks, bids=active_orders.bids)
-    await database_client.record_orderbook(table="our_orders", exchange="None", orderbook=temp_orderbook, timestamp=timestamp)
+
+    while True:
+        await asyncio.sleep(0.1)
+        amount_sold = mexc_client.get_amount_sold()
+        amount_bought = mexc_client.get_amount_bought()
+
+        if amount_sold - amount_bought > Decimal('200_000'):
+            fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal(2))
+            max_bid_price = fair_price - 2 * MEXC_TICK_SIZE
+            # fixed_fair_price = fair_price
+
+        elif amount_bought - amount_sold > Decimal('200_000'):
+            fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal(2))
+            min_ask_price = fair_price + 2 * MEXC_TICK_SIZE
+
+            # fixed_fair_price = Decimal('0')
+        else:
+            min_ask_price = Decimal('0')
+            max_bid_price = Decimal('1')
+
 
 # update_list_of_active_orders:
 # if we have just sold, we delete from active_asks
@@ -131,6 +158,13 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift # there was 2
     act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift # there was 2
     logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
+
+    if min_ask_price != Decimal('0'):
+        act_ask = max(act_ask, min_ask_price)
+        act_bid = act_ask - 5 * MEXC_TICK_SIZE
+    elif max_bid_price != Decimal('0'):
+        act_bid = min(act_bid, max_bid_price)
+        act_ask = act_ask + 5 * MEXC_TICK_SIZE
 
     # act_bid = min(act_bid, Decimal('0.00257'))
     # act_ask = act_bid + 6 * MEXC_TICK_SIZE
