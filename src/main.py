@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 from decimal import Decimal, getcontext
 from datetime import datetime
 from src.crypto.mexc.client import MexcClient
-from src.model import CryptoCurrency, DatabaseMarketState, QueueEvent, EventType, DatabaseOrder
+from src.model import CryptoCurrency, DatabaseMarketState, QueueEvent, EventType
 from src.crypto.kucoin.client import KucoinClient
-from src.crypto.market.tracking import update_list_of_active_orders, manage_orders, track_market_spread, track_market_depth, reset_orders, fix_price_if_too_large_inventory_imbalance
-from src.crypto.market.calculations import calculate_market_depth, calculate_fair_price
+from src.crypto.market.tracking import manage_orders, track_market_depth, reset_orders, fix_price_if_too_large_inventory_imbalance
+from src.crypto.market.calculations import calculate_market_depth, calculate_fair_price, calculate_market_spread
 from loguru import logger
 from src.database.client import DatabaseClient
 import signal
@@ -74,21 +74,6 @@ async def read_from_queue():
             logger.error(f"error type: {type(e)}, details: {e}")
             logger.error(traceback.format_exc())
 
-def stop_program():
-    raise KeyboardInterrupt
-
-async def stop_program_if_balance_to_low():
-    mexc_balance = mexc_client.get_balance()
-
-    while True:
-        await asyncio.sleep(1)
-
-        if 'USDT' not in mexc_balance or 'RMV' not in mexc_balance:
-            continue
-
-        if mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'] < Decimal('200') or mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'] < Decimal('80_000'):
-            stop_program()
-
 # handle exit cancels all our active orders when the program ends
 
 def handle_exit(sig, frame):
@@ -98,6 +83,7 @@ def handle_exit(sig, frame):
 async def cancel_orders_and_exit():
     logger.info("Cancelling all orders on MEXC...")
     try:
+        await database_client.close()
         await mexc_client.cancel_all_orders()
     except Exception as e:
         logger.error(f"Error cancelling orders: {e}")
@@ -109,9 +95,9 @@ database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysq
 mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, add_to_event_queue=add_to_event_queue, database_client=database_client)
 kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoin, api_passphrase=api_passphrase_kucoin, add_to_event_queue=add_to_event_queue, database_client=database_client)
 
+
 async def main(): # all o this run concurrently
     await asyncio.sleep(30)
-    # await mexc_client.get_last_trade(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT)
     await mexc_client.cancel_all_orders()
     await database_client.connect()
 
@@ -127,8 +113,6 @@ async def main(): # all o this run concurrently
     asyncio.create_task(read_from_queue())
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
 
-    # asyncio.create_task(stop_program_if_balance_to_low())
-
     asyncio.create_task(fix_price_if_too_large_inventory_imbalance(mexc_client=mexc_client, kucoin_client=kucoin_client))
     asyncio.create_task(mexc_client.reset_bought_and_sold_amounts())
 
@@ -141,7 +125,7 @@ async def main(): # all o this run concurrently
 
         market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
         fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=[], active_bids=[], percent=Decimal('2'))
-        market_spread = await track_market_spread(client=mexc_client)
+        market_spread = calculate_market_spread(client=mexc_client)
 
         logger.info(f"market depth: {market_depth}")
         logger.info(f"fair price: {fair_price}")
@@ -176,13 +160,9 @@ async def main(): # all o this run concurrently
 
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        # await record_our_orders(timestamp=timestamp, database_client=database_client, mexc_client=mexc_client)
         market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'], rmv_balance=mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'], rmv_value=mexc_balance['RMV']['free'] * fair_price + mexc_balance['RMV']['locked'] * fair_price, timestamp=timestamp)
         await database_client.record_market_state(market_state=market_state)
-        # kucoin_orderbook = kucoin_client.get_orderbook()
-        # await database_client.record_orderbook(table="kucoin_orderbook", exchange="kucoin", orderbook=kucoin_orderbook, timestamp=timestamp)
-        # mexc_orderbook = mexc_client.get_orderbook()
-        # await database_client.record_orderbook(table="mexc_orderbook", exchange="mexc", orderbook=mexc_orderbook, timestamp=timestamp)
+
         logger.info('end\n')
 
 if __name__ == '__main__':

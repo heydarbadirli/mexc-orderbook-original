@@ -5,8 +5,6 @@ from loguru import logger
 from src.model import CryptoCurrency, OrderBook, OrderLevel, ExchangeClient, EventType, QueueEvent
 from decimal import Decimal
 import asyncio
-import aiohttp
-import uuid
 import time
 import base64
 import hmac
@@ -66,9 +64,7 @@ class KucoinClient(ExchangeClient):
 
                     async for message in ws:
                         try:
-                            # message = await ws.recv()
                             data = json.loads(message)
-                            # logger.info('orderbook update kucoin')
 
                             if data['type'] != "message":
                                 continue
@@ -114,50 +110,3 @@ class KucoinClient(ExchangeClient):
             "Content-Type": "application/json"
         }
         return headers
-
-
-    # async def update_balance(self):
-    #     while True:
-    #         endpoint = "/api/v1/accounts"
-    #         method = "GET"
-    #         body = ''
-    #
-    #         headers = self._get_headers(method=method, endpoint=endpoint, body=body)
-    #         url = "https://api.kucoin.com/api/v1/accounts"
-    #
-    #         async with aiohttp.ClientSession() as session:
-    #             async with session.get(url, headers=headers) as response:
-    #                 data = await response.json()
-    #
-    #                 for token in data['data']:
-    #                     if token['currency'] == CryptoCurrency.RMV.value or token['currency'] == CryptoCurrency.USDT.value:
-    #                         self.balances[token['currency']] = Decimal(token['balance'])
-    #         await asyncio.sleep(10)
-    #
-    #
-    # async def place_limit_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, side: str, order_type: str, size: Decimal, price: Decimal):
-    #     symbol = first_currency.value + '-' + second_currency.value
-    #     url = "https://api.kucoin.com"
-    #     endpoint = "/api/v1/hf/orders"
-    #     method = "POST"
-    #
-    #     order = {
-    #         "type": order_type,
-    #         "symbol": symbol,
-    #         "side": side,
-    #         "price": str(price),
-    #         "size": str(size),
-    #         "clientOid": str(uuid.uuid4()),
-    #         "remark": "order remarks"
-    #     }
-    #
-    #     body = json.dumps(order)
-    #     headers = self._get_headers(method=method, endpoint=endpoint, body=body)
-    #
-    #     async with aiohttp.ClientSession() as session:
-    #         async with session.post(url + endpoint, headers=headers, data=body) as response:
-    #             text = await response.json()
-    #             status = response.status
-    #             logger.info(f"KuCoin placing order response: {status}, data: {text}")
-    #
-    #             return text

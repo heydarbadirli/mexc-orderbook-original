@@ -12,6 +12,7 @@ class DatabaseClient:
         self.connection = None
         self.pool = None
 
+
     async def connect(self):
         self.pool = await aiomysql.create_pool(
             host=self.host,

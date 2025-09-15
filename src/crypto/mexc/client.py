@@ -28,7 +28,6 @@ class MexcClient(ExchangeClient):
         self.lock = asyncio.Lock()
         self.active_orders = OrderBook(asks=[], bids=[])
         self.database_client = database_client
-
         self.amount_sold = Decimal('0')
         self.amount_bought = Decimal('0')
 
@@ -136,8 +135,6 @@ class MexcClient(ExchangeClient):
 
                             data = MessageToDict(result)
 
-                            # logger.info(data)
-
                             if 'privateOrders' in data:
                                 data = data['privateOrders']
 
@@ -182,7 +179,7 @@ class MexcClient(ExchangeClient):
                                                 break
 
                                     logger.info(f"tracking orders mexc, data: {data}")
-                                    # event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
+                                    event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
 
                                     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                                     order_id = data['id']
@@ -191,9 +188,8 @@ class MexcClient(ExchangeClient):
                                     await self.database_client.record_order(order=order, table_name="orders")
 
 
-                                    # await self.add_to_event_queue(event=event)
+                                    await self.add_to_event_queue(event=event)
                                 elif data['status'] == 4 or data['status'] == 5:
-                                    # logger.info(f'removing order: {data}')
                                     side = 'buy' if data['tradeType'] == 1 else 'sell'
                                     order_id = data['id']
 
@@ -279,10 +275,8 @@ class MexcClient(ExchangeClient):
 
                             if 'privateAccount' in data:
                                 token = data['privateAccount']['vcoinName']
-                                # print(self.balances[token]['free'] + Decimal(data['privateAccount']['balanceAmountChange']),self.balances[token]['locked'] + Decimal(data['privateAccount']['frozenAmountChange']))
 
                                 self.balance[token] = {'free': Decimal(str(data['privateAccount']['balanceAmount'])), 'locked': Decimal(str(data['privateAccount']['frozenAmount']))}
-                                # print(self.balances[token])
 
 
                         except Exception as e:
@@ -366,15 +360,15 @@ class MexcClient(ExchangeClient):
                     text = await response.text()
                     if response.status == 200:
                         data = await response.json()
-                        logger.info(f"Successfully placed order: {data}")
-                        try:
-                            caller_frame = inspect.stack()[1]
-                            caller_file = caller_frame.filename
-                            caller_line = caller_frame.lineno
-                            caller_func = caller_frame.function
-                            logger.info(f"Called from {caller_func} in {caller_file} at line {caller_line}")
-                        except Exception as e:
-                            logger.error(f"Error: {e}")
+                        # logger.info(f"Successfully placed order: {data}")
+                        # try:
+                        #     caller_frame = inspect.stack()[1]
+                        #     caller_file = caller_frame.filename
+                        #     caller_line = caller_frame.lineno
+                        #     caller_func = caller_frame.function
+                        #     logger.info(f"Called from {caller_func} in {caller_file} at line {caller_line}")
+                        # except Exception as e:
+                        #     logger.error(f"Error: {e}")
                         return data['orderId']
                     else:
                         logger.error(f'Order failed: {text}, price: {price}, size: {size}, balances: {self.balance}')
@@ -412,18 +406,16 @@ class MexcClient(ExchangeClient):
                 data = await response.json()
 
                 if response.status == 200:
-                    logger.info(f'Successfully canceled order: {data}')
-                    try:
-                        caller_frame = inspect.stack()[1]
-                        caller_file = caller_frame.filename
-                        caller_line = caller_frame.lineno
-                        caller_func = caller_frame.function
-                        logger.info(f"Called from {caller_func} in {caller_file} at line {caller_line}")
-                    except Exception as e:
-                        logger.error(f"Error: {e}")
+                    # logger.info(f'Successfully canceled order: {data}')
+                    # try:
+                    #     caller_frame = inspect.stack()[1]
+                    #     caller_file = caller_frame.filename
+                    #     caller_line = caller_frame.lineno
+                    #     caller_func = caller_frame.function
+                    #     logger.info(f"Called from {caller_func} in {caller_file} at line {caller_line}")
+                    # except Exception as e:
+                    #     logger.error(f"Error: {e}")
                     return data
-                    # ...
-
                 else:
                     logger.error(f'Order cancellation failed: {data}, order_id: {order_id}')
                     try:
@@ -438,8 +430,8 @@ class MexcClient(ExchangeClient):
 
 
     async def cancel_all_orders(self):
-        base_url = 'https://api.mexc.com'
         timestamp = round(time.time() * 1000)
+
         params = {
             'api_key': self.api_key,
             'symbol': 'RMVUSDT',
@@ -461,32 +453,3 @@ class MexcClient(ExchangeClient):
             logger.info(f"Cancelled orders: {response.json()}")
         else:
             logger.error(f'{response.status_code}, {response.text}')
-
-    # @staticmethod
-    # async def get_last_trade(first_currency: CryptoCurrency, second_currency: CryptoCurrency):
-    #     symbol = first_currency.value + second_currency.value
-    #
-    #     url = f"https://www.mexc.com/api/v3/trades"
-    #     params = {
-    #         'symbol': symbol.upper()
-    #     }
-    #     # print(url)
-    #
-    #     async with aiohttp.ClientSession() as session:
-    #         async with session.get(url, params=params) as response:
-    #             data = await response.json()
-    #             return data[0] if data else None
-    # @staticmethod
-    # async def get_last_trade(first_currency: CryptoCurrency, second_currency: CryptoCurrency):
-    #     # Construct the symbol in the correct format: "RMVUSDT"
-    #     symbol = f"{first_currency.value.upper()}{second_currency.value.upper()}"
-    #
-    #     url = f"https://www.mexc.com/api/v2/market/deals?symbol={symbol}"
-    #     async with aiohttp.ClientSession() as session:
-    #         async with session.get(url) as resp:
-    #             if resp.status != 200:
-    #                 raise Exception(f"MEXC API returned status {resp.status}")
-    #             data = await resp.json()
-    #             if data.get("success") and data.get("data"):
-    #                 return data["data"][0]  # Return the most recent trade
-    #             return None

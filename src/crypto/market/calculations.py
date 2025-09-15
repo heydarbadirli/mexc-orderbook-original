@@ -2,7 +2,6 @@ from decimal import Decimal, ROUND_HALF_DOWN, ROUND_HALF_UP
 from src.crypto.mexc.client import MexcClient
 from src.crypto.kucoin.client import KucoinClient
 from src.model import ExchangeClient, OrderLevel
-from loguru import logger
 
 # calculate_market_depth:
 # calculates market depth by getting upper price and lower price and adding sizes of orders
@@ -38,7 +37,6 @@ def calculate_market_depth(client: ExchangeClient, percent: Decimal) -> Decimal:
 # calculate_fair_price
 # it calculates fair price using cross exchanges formula
 # takes mid-price from mexc and kucoin and liquidity on both exchanges
-# IT DOES NOT TAKE INTO ACCOUNT our orders
 
 def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, active_bids: list[OrderLevel], active_asks: list[OrderLevel], percent: Decimal):
     mexc_orderbook = mexc_client.get_orderbook()
@@ -47,6 +45,7 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return None
 
+    # CODE BELOW: IF WE WANT MID PRICE WHICH DOES NOT INCLUDE OUR ORDERS
     # mexc_lowest_ask, mexc_highest_bid = None, None
     #
     # for ask in mexc_orderbook.asks:
@@ -60,19 +59,21 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
     #     if not found:
     #         mexc_highest_bid = bid.price
     #         break
-
-
     # mexc_mid_price = (mexc_lowest_ask + mexc_highest_bid) / 2
+
     mexc_mid_price = (mexc_orderbook.asks[0].price + mexc_orderbook.bids[0].price) / 2
     kucoin_mid_price = (kucoin_orderbook.asks[0].price + kucoin_orderbook.bids[0].price) / 2
 
     upper_bound = mexc_mid_price * Decimal(1 + percent / 100)
     lower_bound = mexc_mid_price * Decimal(1 - percent / 100)
 
-    # mexc_liquidity = 0
+
     kucoin_liquidity = calculate_market_depth(client=kucoin_client, percent=percent)
     mexc_liquidity = calculate_market_depth(client=mexc_client, percent=percent)
 
+    # CODE BELOW: IF WE WANT TO GET LIQUIDITY WHICH DOES NOT INCLUDE OUR ORDERS
+
+    # mexc_liquidity = 0
     # for ask in mexc_orderbook.asks:
     #     if ask.price > upper_bound:
     #         break
@@ -105,3 +106,18 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
         fair_price = kucoin_orderbook.bids[0].price.quantize(Decimal('0.00001'), rounding=ROUND_HALF_UP)
 
     return fair_price
+
+
+def calculate_market_spread(client: ExchangeClient):
+    orderbook = client.get_orderbook()
+
+    if len(orderbook.asks) == 0 or len(orderbook.bids) == 0:
+        return None
+
+    lowest_ask = orderbook.asks[0].price
+    highest_bid = orderbook.bids[0].price
+
+    mid_price = (lowest_ask + highest_bid) / 2
+    percent_spread = (lowest_ask - highest_bid) / mid_price * 100
+
+    return percent_spread
