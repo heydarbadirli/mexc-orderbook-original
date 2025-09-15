@@ -478,7 +478,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
                 # last_len = len(active_orders.asks)
-                cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[ask_id].id)
+                cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_asks[ask_id].id)
 
                 # while last_len == len(active_orders.asks) and cancellation is not None:
                 #     logger.info(2)
@@ -541,7 +541,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
                 # last_len = len(active_orders.bids)
-                cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[bid_id].id)
+                cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_bids[bid_id].id)
                 # logger.info(cancellation)
                 # while last_len == len(active_orders.bids) and cancellation is not None:
                 #     logger.info(1)
