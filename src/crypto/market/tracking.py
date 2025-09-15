@@ -358,7 +358,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
 
             order_id = None
             if cancellation is not None:
-                del active_orders.asks[i]
+                # del active_orders.asks[i]
                 order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
 
             if order_id is not None:
