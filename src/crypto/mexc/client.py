@@ -418,7 +418,7 @@ class MexcClient(ExchangeClient):
                         caller_file = caller_frame.filename
                         caller_line = caller_frame.lineno
                         caller_func = caller_frame.function
-                        print(f"Called from {caller_func} in {caller_file} at line {caller_line}")
+                        logger.info(f"Called from {caller_func} in {caller_file} at line {caller_line}")
                     except Exception as e:
                         logger.error(f"Error: {e}")
                     return data
