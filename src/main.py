@@ -46,10 +46,10 @@ async def add_to_event_queue(event: QueueEvent):
 async def read_from_queue():
     while True:
         event = await event_queue.get()
-        logger.info(f'q size: {event_queue.qsize()}')
+        # logger.info(f'q size: {event_queue.qsize()}')
 
         if not event or event.type is None:
-            logger.warning("Skipping invalid event: %s", event)
+            logger.warning(f'Skipping invalid event: {event}')
             continue
 
         try:
@@ -58,18 +58,8 @@ async def read_from_queue():
             elif event.type == EventType.MEXC_ORDERBOOK_UPDATE:
                 await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client, database_client=database_client)
                 await track_market_depth(mexc_client=mexc_client, database_client=database_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
-            # elif event.type == EventType.FILLED_ORDER:
-            #
-            #     side = 'buy' if event.data['tradeType'] == 1 else 'sell'
-            #     size = Decimal(str(event.data['cumulativeQuantity']))
-            #     price = Decimal(str(event.data['price']))
-            #     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            #     order_id = event.data['id']
-            #
-            #     order = DatabaseOrder(pair='RMV-USDT', side=side, price=price, size=size, timestamp=timestamp,order_id=order_id)
-            #     await database_client.record_order(order=order, table_name="orders")
-
-                # await update_list_of_active_orders(data=event.data, database_client=database_client)
+            elif event.type == EventType.FILLED_ORDER:
+                ...
         except Exception as e:
             logger.error(f"error type: {type(e)}, details: {e}")
             logger.error(traceback.format_exc())

@@ -58,7 +58,7 @@ class MexcClient(ExchangeClient):
 
     async def reset_bought_and_sold_amounts(self):
         while True:
-            await asyncio.sleep(30 * 60)
+            await asyncio.sleep(45 * 60)
             self.amount_sold = Decimal('0')
             self.amount_bought = Decimal('0')
 
