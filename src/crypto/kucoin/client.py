@@ -87,26 +87,3 @@ class KucoinClient(ExchangeClient):
             except Exception as e:
                 logger.error(f"Error: {e}")
                 await asyncio.sleep(5)
-
-
-    def _get_headers(self, method, endpoint, body=''):
-        now = str(int(time.time() * 1000))
-        str_to_sign = now + method + endpoint + body
-
-        signature = base64.b64encode(
-            hmac.new(self.api_secret.encode('utf-8'), str_to_sign.encode('utf-8'), hashlib.sha256).digest()
-        ).decode()
-
-        passphrase = base64.b64encode(
-            hmac.new(self.api_secret.encode('utf-8'), self.api_passphrase.encode('utf-8'), hashlib.sha256).digest()
-        ).decode()
-
-        headers = {
-            "KC-API-KEY": self.api_key,
-            "KC-API-SIGN": signature,
-            "KC-API-TIMESTAMP": now,
-            "KC-API-PASSPHRASE": passphrase,
-            "KC-API-KEY-VERSION": "2",
-            "Content-Type": "application/json"
-        }
-        return headers

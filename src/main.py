@@ -30,7 +30,6 @@ mysql_password = os.getenv("MYSQL_PASSWORD")
 
 EXPECTED_MARKET_DEPTH = Decimal(1500)
 
-order_lock = asyncio.Lock()
 event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
 
 # there is event queue which is queue where functions puts event that are important for keeping orders with correct price and for keeping market depth
