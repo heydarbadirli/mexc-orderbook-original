@@ -429,12 +429,13 @@ class MexcClient(ExchangeClient):
                     return None
 
 
-    async def cancel_all_orders(self):
+    async def cancel_all_orders(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
         timestamp = round(time.time() * 1000)
+        symbol = first_currency.value + second_currency.value
 
         params = {
             'api_key': self.api_key,
-            'symbol': 'RMVUSDT',
+            'symbol': symbol.upper(),
             'timestamp': timestamp
         }
 

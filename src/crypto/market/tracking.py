@@ -21,7 +21,7 @@ async def reset_orders(mexc_client: MexcClient):
     while True:
         await asyncio.sleep(60 * 60)
         logger.info("Resetting orders")
-        await mexc_client.cancel_all_orders()
+        await mexc_client.cancel_all_orders(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT)
 
 
 async def fix_price_if_too_large_inventory_imbalance(mexc_client: MexcClient, kucoin_client: KucoinClient):
@@ -391,6 +391,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         stopper = 0
 
         while how_many_to_add_rmv > 1 and stopper < 100 and len(active_asks) > 1:
+            logger.info(f'active asks: {active_asks}')
             if mexc_balance['RMV']['free'] < 400:
                 logger.warning('to small balance to add RMV volume')
                 break
@@ -430,6 +431,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         stopper = 0
 
         while how_many_to_add_usdt > 1 and stopper < 100 and len(active_bids) > 1:
+            logger.info(f'active bids: {active_bids}')
             if mexc_balance['USDT']['free'] < 1:
                 logger.warning('to small balance to add usdt volume')
                 break

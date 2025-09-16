@@ -87,7 +87,7 @@ kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoi
 
 async def main(): # all o this run concurrently
     await asyncio.sleep(30)
-    await mexc_client.cancel_all_orders()
+    await mexc_client.cancel_all_orders(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT)
     await database_client.connect()
 
     listen_key = await mexc_client.create_listen_key()
