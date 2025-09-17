@@ -144,12 +144,20 @@ class MexcClient(ExchangeClient):
                                     size = Decimal(str(data['quantity']))
                                     order_id = data['id']
 
-                                    if side == 'buy':
-                                        self.active_orders.bids.append(OrderLevel(id=order_id, price=price, size=size))
-                                        self.active_orders.bids.sort(key=lambda x: x.price, reverse=True)
-                                    else:
-                                        self.active_orders.asks.append(OrderLevel(id=order_id, price=price, size=size))
-                                        self.active_orders.asks.sort(key=lambda x: x.price)
+                                    # if side == 'buy':
+                                    #     found = any(d.id == order_id for d in self.active_orders.bids)
+                                    # else:
+                                    #     found = any(d.id == order_id for d in self.active_orders.asks)
+                                    #
+                                    # if not found:
+                                    #     logger.error(f"NOT FOUND order in active orders: {data}")
+
+                                    # if side == 'buy':
+                                    #     self.active_orders.bids.append(OrderLevel(id=order_id, price=price, size=size))
+                                    #     self.active_orders.bids.sort(key=lambda x: x.price, reverse=True)
+                                    # else:
+                                    #     self.active_orders.asks.append(OrderLevel(id=order_id, price=price, size=size))
+                                    #     self.active_orders.asks.sort(key=lambda x: x.price)
                                 elif data['status'] == 2 or data['status'] == 3:
                                     side = 'buy' if data['tradeType'] == 1 else 'sell'
                                     order_id = data['id']
@@ -187,22 +195,29 @@ class MexcClient(ExchangeClient):
                                     order = DatabaseOrder(pair='RMV-USDT', side=side, price=price, size=trade_size, timestamp=timestamp, order_id=order_id)
                                     await self.database_client.record_order(order=order, table_name="orders")
 
-
                                     await self.add_to_event_queue(event=event)
-                                elif data['status'] == 4 or data['status'] == 5:
-                                    side = 'buy' if data['tradeType'] == 1 else 'sell'
-                                    order_id = data['id']
+                                # elif data['status'] == 4 or data['status'] == 5:
+                                #     side = 'buy' if data['tradeType'] == 1 else 'sell'
+                                #     order_id = data['id']
+                                #
+                                #     if side == 'buy':
+                                #         found = any(d.id == order_id for d in self.active_orders.bids)
+                                #     else:
+                                #         found = any(d.id == order_id for d in self.active_orders.asks)
+                                #
+                                #     if found:
+                                #         logger.error(f"FOUND order in active orders, THIS ORDER SHOULD NOT EXISTS: {data}")
 
-                                    if side == 'buy':
-                                        for i in range(len(self.active_orders.bids) - 1, -1, -1):
-                                            if self.active_orders.bids[i].id == order_id:
-                                                del self.active_orders.bids[i]
-                                                break
-                                    else:
-                                        for i in range(len(self.active_orders.asks) - 1, -1, -1):
-                                            if self.active_orders.asks[i].id == order_id:
-                                                del self.active_orders.asks[i]
-                                                break
+                                    # if side == 'buy':
+                                    #     for i in range(len(self.active_orders.bids) - 1, -1, -1):
+                                    #         if self.active_orders.bids[i].id == order_id:
+                                    #             del self.active_orders.bids[i]
+                                    #             break
+                                    # else:
+                                    #     for i in range(len(self.active_orders.asks) - 1, -1, -1):
+                                    #         if self.active_orders.asks[i].id == order_id:
+                                    #             del self.active_orders.asks[i]
+                                    #             break
 
                                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                                 await self.database_client.record_orderbook(table='our_orders', exchange='mexc', orderbook=self.active_orders, timestamp=timestamp)
@@ -452,5 +467,7 @@ class MexcClient(ExchangeClient):
         response = requests.delete(self.rest_base_url + cancel_endpoint)
         if response.status_code == 200:
             logger.info(f"Cancelled orders: {response.json()}")
+            return response
         else:
             logger.error(f'{response.status_code}, {response.text}')
+            return None

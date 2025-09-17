@@ -73,7 +73,7 @@ async def cancel_orders_and_exit():
     logger.info("Cancelling all orders on MEXC...")
     try:
         await database_client.close()
-        await mexc_client.cancel_all_orders()
+        await mexc_client.cancel_all_orders(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT)
     except Exception as e:
         logger.error(f"Error cancelling orders: {e}")
     asyncio.get_event_loop().stop()
@@ -87,6 +87,7 @@ kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoi
 
 async def main(): # all o this run concurrently
     await asyncio.sleep(30)
+
     await mexc_client.cancel_all_orders(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT)
     await database_client.connect()
 
