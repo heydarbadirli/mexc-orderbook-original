@@ -386,7 +386,7 @@ class MexcClient(ExchangeClient):
                         #     logger.error(f"Error: {e}")
                         return data['orderId']
                     else:
-                        logger.error(f'Order failed: {text}, price: {price}, size: {size}, balances: {self.balance}')
+                        logger.error(f'Order failed: {text}, price: {price}, size: {size}, side: {side},  balances: {self.balance}')
                         try:
                             caller_frame = inspect.stack()[1]
                             caller_file = caller_frame.filename
