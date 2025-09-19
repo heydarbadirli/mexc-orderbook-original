@@ -179,27 +179,6 @@ class MexcClient(ExchangeClient):
                                             else:
                                                 orders[i].size = remain_size
 
-                                    # if side == 'buy':
-                                    #     self.amount_bought += trade_size
-                                    #
-                                    #     for i in range(len(self.active_orders.bids) - 1, -1, -1):
-                                    #         if self.active_orders.bids[i].id == order_id:
-                                    #             if data['status'] == 2:
-                                    #                 del self.active_orders.bids[i]
-                                    #             else:
-                                    #                 self.active_orders.bids[i].size = size
-                                    #             break
-                                    # else:
-                                    #     self.amount_sold += trade_size
-                                    #
-                                    #     for i in range(len(self.active_orders.asks) -1, -1, -1):
-                                    #         if self.active_orders.asks[i].id == order_id:
-                                    #             if data['status'] == 2:
-                                    #                 del self.active_orders.asks[i]
-                                    #             else:
-                                    #                 self.active_orders.asks[i].size = size
-                                    #             break
-
                                     logger.info(f"tracking orders mexc, data: {data}")
                                     event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
 
