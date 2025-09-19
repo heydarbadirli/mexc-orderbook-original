@@ -14,8 +14,8 @@ MEXC_TICK_SIZE = Decimal('0.00001')
 INVENTORY_BALANCE = Decimal('320_000')
 INVENTORY_LIMIT = Decimal('120_000')
 
-min_ask_price = Decimal('0')
-max_bid_price = Decimal('0')
+lowest_possible_ask_price = Decimal('0')
+highest_possible_bid_price = Decimal('0')
 
 async def reset_orders(mexc_client: MexcClient):
     active_orders = mexc_client.get_active_orders()
@@ -31,25 +31,24 @@ async def reset_orders(mexc_client: MexcClient):
 
 
 async def fix_price_if_too_large_inventory_imbalance(mexc_client: MexcClient, kucoin_client: KucoinClient):
-    global min_ask_price, max_bid_price
+    global lowest_possible_ask_price, highest_possible_bid_price
     active_orders = mexc_client.get_active_orders()
 
     while True:
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
+
         amount_sold = mexc_client.get_amount_sold()
         amount_bought = mexc_client.get_amount_bought()
 
         if amount_sold - amount_bought > INVENTORY_BALANCE:
             fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal(2))
-            max_bid_price = fair_price - 2 * MEXC_TICK_SIZE
-
+            highest_possible_bid_price = fair_price - 2 * MEXC_TICK_SIZE
         elif amount_bought - amount_sold > INVENTORY_BALANCE:
             fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal(2))
-            min_ask_price = fair_price + 2 * MEXC_TICK_SIZE
-
+            lowest_possible_ask_price = fair_price + 2 * MEXC_TICK_SIZE
         else:
-            min_ask_price = Decimal('0')
-            max_bid_price = Decimal('1')
+            lowest_possible_ask_price = Decimal('0')
+            highest_possible_bid_price = Decimal('1')
 
 # manage_orders:
 # it calculates fair price, and basically it places orders +- two mexc tick sizes from fair price
@@ -89,49 +88,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     balance = mexc_client.get_balance()
     active_orders = mexc_client.get_active_orders()
 
-    number_of_asks = 5
-    number_of_bids = 5
-
-    # fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal(2))
-
-    # if fair_price is None:
-    #     return
-
-    # if 'RMV' not in balance:
-    #     return
-
-    # full_rmv_balance = balance['RMV']['free'] + balance['RMV']['locked']
-
-    # ask_shift, bid_shift = Decimal('0'), Decimal('0')
-
-    # if full_rmv_balance < INVENTORY_BALANCE:
-    #     ask_shift += MEXC_TICK_SIZE
-    # else:
-    #     bid_shift -= MEXC_TICK_SIZE
-
-    # SKEWING LOGIC:
-    # if full_rmv_balance - INVENTORY_BALANCE > 200_000:
-    #     ask_shift -= 3 * MEXC_TICK_SIZE
-    #     bid_shift -= 3 * MEXC_TICK_SIZE
-    # elif full_rmv_balance - INVENTORY_BALANCE < -200_000:
-    #     ask_shift += 3 * MEXC_TICK_SIZE
-    #     bid_shift += 3 * MEXC_TICK_SIZE
-    # if full_rmv_balance - INVENTORY_BALANCE > 100_000:  # we are long
-    #     ask_shift -= 2 * MEXC_TICK_SIZE
-    #     bid_shift -= 2 * MEXC_TICK_SIZE
-    # elif full_rmv_balance - INVENTORY_BALANCE < -100_000:  # we are short
-    #     bid_shift += 2 * MEXC_TICK_SIZE
-    #     ask_shift += 2 * MEXC_TICK_SIZE
-    # if full_rmv_balance - INVENTORY_BALANCE > 50_000: # we are long
-    #     ask_shift -= MEXC_TICK_SIZE
-    #     bid_shift -= MEXC_TICK_SIZE
-    # elif full_rmv_balance - INVENTORY_BALANCE < -50_000: # we are short
-    #     bid_shift += MEXC_TICK_SIZE
-    #     ask_shift += MEXC_TICK_SIZE
-
-    # act_ask = fair_price + 2 * MEXC_TICK_SIZE + ask_shift
-    # act_bid = fair_price - 2 * MEXC_TICK_SIZE + bid_shift
-    # logger.info(f'act_ask: {act_ask}, act_bid: {act_bid}, fair_price: {fair_price}, ask_shift: {ask_shift}, bid_shift: {bid_shift}')
+    number_of_asks, number_of_bids = 5, 5
 
     ask_price, bid_price = await get_quotes(mexc_client=mexc_client, kucoin_client=kucoin_client)
 
@@ -140,12 +97,12 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     logger.info(f'ask_price: {ask_price}, bid_price: {bid_price}')
 
-    # if min_ask_price != Decimal('0'):
-    #     act_ask = max(act_ask, min_ask_price)
-    #     act_bid = act_ask - 4 * MEXC_TICK_SIZE
-    # elif max_bid_price != Decimal('1'):
-    #     act_bid = min(act_bid, max_bid_price)
-    #     act_ask = act_ask + 4 * MEXC_TICK_SIZE
+    if lowest_possible_ask_price != Decimal('0'):
+        ask_price = max(ask_price, lowest_possible_ask_price)
+        bid_price = ask_price - 4 * MEXC_TICK_SIZE
+    elif highest_possible_bid_price != Decimal('1'):
+        bid_price = min(bid_price, highest_possible_bid_price)
+        ask_price = bid_price + 4 * MEXC_TICK_SIZE
 
     if len(mexc_orderbook.asks) == 0 or len(mexc_orderbook.bids) == 0 or len(kucoin_orderbook.asks) == 0 or len(kucoin_orderbook.bids) == 0:
         return
