@@ -100,25 +100,12 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
         bid_price = min(bid_price, highest_possible_bid_price)
         ask_price = bid_price + 4 * MEXC_TICK_SIZE
 
-
     for i in range(len(active_orders.asks) - 1, -1, -1):
         if (active_orders.asks[i].price <= ask_price - MEXC_TICK_SIZE) or (active_orders.asks[i].price >= ask_price + number_of_asks * MEXC_TICK_SIZE) or (active_orders.asks[i].price == ask_price and active_orders.asks[i].size > Decimal('5_000')):
             cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[i].id)
 
             if cancellation is not None:
                 del active_orders.asks[i]
-        # elif active_orders.asks[i].price == ask_price and active_orders.asks[i].size > Decimal('5_000'):
-        #     cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[i].id)
-        #
-        #     if cancellation is not None:
-        #         del active_orders.asks[i]
-                # price = ask_price
-                # size = Decimal(random.randint(2_000, 5_000))
-                # order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', price=price, size=size)
-                #
-                # if order_id is not None:
-                #     active_orders.asks.append(OrderLevel(id=order_id, price=price, size=size))
-                #     active_orders.asks.sort(key=lambda ask: ask.price)
 
     for i in range(len(active_orders.bids) - 1, -1, -1):
         if (active_orders.bids[i].price >= bid_price + MEXC_TICK_SIZE) or (active_orders.bids[i].price <= bid_price - number_of_bids * MEXC_TICK_SIZE) or (active_orders.bids[i].price == bid_price and active_orders.bids[i].size > Decimal('5_000')):
@@ -126,22 +113,12 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
             if cancellation is not None:
                 del active_orders.bids[i]
-        # elif active_orders.bids[i].price == bid_price and active_orders.bids[i].size > Decimal('5_000'):
-        #     cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[i].id)
-        #
-        #     if cancellation is not None:
-        #         del active_orders.bids[i]
-                # price = bid_price
-                # size = Decimal(random.randint(2_000, 5_000))
-                # order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', price=price, size=size)
-                #
-                # if order_id is not None:
-                #     active_orders.bids.append(OrderLevel(id=order_id, price=price, size=size))
-                #     active_orders.bids.sort(key=lambda bid: bid.price)
 
-    max_size = balance['RMV']['free'] / Decimal(number_of_asks)
+    max_size = Decimal('0')
+    if len(active_orders.asks) < number_of_asks:
+        max_size = balance['RMV']['free'] / Decimal(number_of_asks - len(active_orders.asks))
 
-    for _ in range(number_of_asks):
+    while len(active_orders.asks) < number_of_asks:
         found = any(d.price == ask_price for d in active_orders.asks)
 
         if not found:
@@ -165,15 +142,15 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
                 order = DatabaseOrder(pair='RMV-USDT', side='sell', price=ask_price, size=size, order_id=order_id, timestamp=timestamp)
                 await database_client.record_order(order=order, table_name="every_order_placed")
             else:
-                logger.error(f'Failed to place limit order: price: {ask_price}, size: {size}, balance: {balance}')
                 break
 
         ask_price += MEXC_TICK_SIZE
 
+    max_size_in_usdt = Decimal('0')
+    if len(active_orders.bids) < number_of_bids:
+        max_size_in_usdt = balance['USDT']['free'] / Decimal(number_of_bids - len(active_orders.bids))
 
-    max_size_in_usdt = balance['USDT']['free'] / Decimal(number_of_bids)
-
-    for _ in range(number_of_bids):
+    while len(active_orders.bids) < number_of_bids:
         found = any(d.price == bid_price for d in active_orders.bids)
 
         if not found:
@@ -197,7 +174,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
                 order = DatabaseOrder(pair='RMV-USDT', side='buy', price=bid_price, size=size, order_id=order_id, timestamp=timestamp)
                 await database_client.record_order(order=order, table_name="every_order_placed")
             else:
-                logger.error(f"Failed to place limit order: price: {bid_price}, size: {size}, balance: {balance}")
                 break
 
         bid_price -= MEXC_TICK_SIZE
