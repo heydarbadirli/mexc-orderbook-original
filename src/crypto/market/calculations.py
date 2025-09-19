@@ -3,6 +3,11 @@ from src.crypto.mexc.client import MexcClient
 from src.crypto.kucoin.client import KucoinClient
 from src.model import ExchangeClient, OrderLevel
 
+MEXC_TICK_SIZE = Decimal('0.00001')
+
+INVENTORY_BALANCE = Decimal('320_000')
+INVENTORY_LIMIT = Decimal('120_000')
+
 # calculate_market_depth:
 # calculates market depth by getting upper price and lower price and adding sizes of orders
 
@@ -121,3 +126,26 @@ def calculate_market_spread(client: ExchangeClient):
     percent_spread = (lowest_ask - highest_bid) / mid_price * 100
 
     return percent_spread
+
+
+def get_quotes(mexc_client: MexcClient, kucoin_client: KucoinClient):
+    active_orders = mexc_client.get_active_orders()
+    balance = mexc_client.get_balance()
+
+    fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal('2'))
+
+    if fair_price is None or 'RMV' not in balance or 'USDT' not in balance:
+        return None, None
+
+    current_inventory = balance['RMV']['free'] + balance['RMV']['locked']
+    half_spread = Decimal('0.00002')
+    alpha = half_spread * Decimal('0.5')
+    normalize_inventory_position = (current_inventory - INVENTORY_BALANCE) / INVENTORY_LIMIT
+
+    ask_price = fair_price + half_spread - alpha * normalize_inventory_position
+    bid_price = fair_price - half_spread - alpha * normalize_inventory_position
+
+    ask_price = ask_price.quantize(MEXC_TICK_SIZE, rounding=ROUND_HALF_UP)
+    bid_price = bid_price.quantize(MEXC_TICK_SIZE, rounding=ROUND_HALF_UP)
+
+    return ask_price, bid_price
