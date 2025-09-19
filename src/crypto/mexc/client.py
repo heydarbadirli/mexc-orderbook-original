@@ -162,29 +162,43 @@ class MexcClient(ExchangeClient):
                                     side = 'buy' if data['tradeType'] == 1 else 'sell'
                                     order_id = data['id']
                                     price = Decimal(str(data['price']))
-                                    size = Decimal(str(data['remainQuantity']))
+                                    remain_size = Decimal(str(data['remainQuantity']))
                                     trade_size = Decimal(str(data['cumulativeQuantity']))
 
                                     if side == 'buy':
                                         self.amount_bought += trade_size
-
-                                        for i in range(len(self.active_orders.bids) - 1, -1, -1):
-                                            if self.active_orders.bids[i].id == order_id:
-                                                if data['status'] == 2:
-                                                    del self.active_orders.bids[i]
-                                                else:
-                                                    self.active_orders.bids[i].size = size
-                                                break
                                     else:
-                                        self.amount_sold += trade_size
+                                        self.amount_sold += remain_size
 
-                                        for i in range(len(self.active_orders.asks) -1, -1, -1):
-                                            if self.active_orders.asks[i].id == order_id:
-                                                if data['status'] == 2:
-                                                    del self.active_orders.asks[i]
-                                                else:
-                                                    self.active_orders.asks[i].size = size
-                                                break
+                                    orders = self.active_orders.bids if side == 'buy' else self.active_orders.asks
+
+                                    for i in range(len(orders) - 1, -1, -1):
+                                        if orders[i].id == order_id:
+                                            if data['status'] == 2:
+                                                del orders[i]
+                                            else:
+                                                orders[i].size = remain_size
+
+                                    # if side == 'buy':
+                                    #     self.amount_bought += trade_size
+                                    #
+                                    #     for i in range(len(self.active_orders.bids) - 1, -1, -1):
+                                    #         if self.active_orders.bids[i].id == order_id:
+                                    #             if data['status'] == 2:
+                                    #                 del self.active_orders.bids[i]
+                                    #             else:
+                                    #                 self.active_orders.bids[i].size = size
+                                    #             break
+                                    # else:
+                                    #     self.amount_sold += trade_size
+                                    #
+                                    #     for i in range(len(self.active_orders.asks) -1, -1, -1):
+                                    #         if self.active_orders.asks[i].id == order_id:
+                                    #             if data['status'] == 2:
+                                    #                 del self.active_orders.asks[i]
+                                    #             else:
+                                    #                 self.active_orders.asks[i].size = size
+                                    #             break
 
                                     logger.info(f"tracking orders mexc, data: {data}")
                                     event = QueueEvent(type=EventType.FILLED_ORDER, data=data)
