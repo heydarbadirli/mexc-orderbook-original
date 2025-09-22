@@ -66,7 +66,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     number_of_asks, number_of_bids = 5, 5
 
     ask_price, bid_price = get_quotes(mexc_client=mexc_client, kucoin_client=kucoin_client)
-    # logger.info(f'ask price: {ask_price}, bid price: {bid_price}')
 
     if ask_price is None and bid_price is None or len(mexc_orderbook.asks) == 0 or len(mexc_orderbook.bids) == 0 or len(kucoin_orderbook.asks) == 0 or len(kucoin_orderbook.bids) == 0:
         return
@@ -85,17 +84,23 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
     for i in range(len(active_orders.asks) - 1, -1, -1):
         if (active_orders.asks[i].price <= ask_price - MEXC_TICK_SIZE) or (active_orders.asks[i].price >= ask_price + number_of_asks * MEXC_TICK_SIZE) or (active_orders.asks[i].price == ask_price and active_orders.asks[i].size > Decimal('5_000')) or (active_orders.asks[i].price > upper_bound and active_orders.asks[i].size > Decimal('20_000')):
-            cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[i].id)
+            order_id = active_orders.asks[i].id
+            cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=order_id)
 
             if cancellation is not None:
-                del active_orders.asks[i]
+                found = any(order_id == order.id for order in active_orders.asks)
+                if found:
+                    del active_orders.asks[i]
 
     for i in range(len(active_orders.bids) - 1, -1, -1):
         if (active_orders.bids[i].price >= bid_price + MEXC_TICK_SIZE) or (active_orders.bids[i].price <= bid_price - number_of_bids * MEXC_TICK_SIZE) or (active_orders.bids[i].price == bid_price and active_orders.bids[i].size > Decimal('5_000')) or (active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > Decimal('20_000')):
-            cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[i].id)
+            order_id = active_orders.bids[i].id
+            cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=order_id)
 
             if cancellation is not None:
-                del active_orders.bids[i]
+                found = any(order_id == order.id for order in active_orders.bids)
+                if found:
+                    del active_orders.bids[i]
 
     max_size = Decimal('0')
     if len(active_orders.asks) < number_of_asks:
@@ -118,12 +123,14 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV,second_currency=CryptoCurrency.USDT, side='sell',order_type='limit', size=size, price=ask_price)
 
             if order_id is not None:
-                active_orders.asks.append(OrderLevel(id=order_id, price=ask_price, size=size))
-                active_orders.asks.sort(key=lambda ask: ask.price)
+                found = any(order_id == order.id for order in active_orders.asks)
+                if not found:
+                    active_orders.asks.append(OrderLevel(id=order_id, price=ask_price, size=size))
+                    active_orders.asks.sort(key=lambda ask: ask.price)
 
-                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                order = DatabaseOrder(pair='RMV-USDT', side='sell', price=ask_price, size=size, order_id=order_id, timestamp=timestamp)
-                await database_client.record_order(order=order, table_name="every_order_placed")
+                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    order = DatabaseOrder(pair='RMV-USDT', side='sell', price=ask_price, size=size, order_id=order_id, timestamp=timestamp)
+                    await database_client.record_order(order=order, table_name="every_order_placed")
             else:
                 break
 
@@ -150,12 +157,14 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
             order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy',order_type='limit', size=size, price=bid_price)
 
             if order_id is not None:
-                active_orders.bids.append(OrderLevel(id=order_id, price=bid_price, size=size))
-                active_orders.bids.sort(key=lambda bid: bid.price, reverse=True)
+                found = any(order_id == order.id for order in active_orders.bids)
+                if not found:
+                    active_orders.bids.append(OrderLevel(id=order_id, price=bid_price, size=size))
+                    active_orders.bids.sort(key=lambda bid: bid.price, reverse=True)
 
-                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                order = DatabaseOrder(pair='RMV-USDT', side='buy', price=bid_price, size=size, order_id=order_id, timestamp=timestamp)
-                await database_client.record_order(order=order, table_name="every_order_placed")
+                    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    order = DatabaseOrder(pair='RMV-USDT', side='buy', price=bid_price, size=size, order_id=order_id, timestamp=timestamp)
+                    await database_client.record_order(order=order, table_name="every_order_placed")
             else:
                 break
 
@@ -166,7 +175,7 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 # first it add to highest asks and lowest bids and so on
 # it also takes into account inventory balance and calculates ration of usdt balance and rmv balance and add more size on the side that we have more currency
 
-async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseClient, percent: Decimal, expected_market_depth: Decimal):
+async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseClient, percent: Decimal, expected_market_depth: Decimal):
     mexc_orderbook = mexc_client.get_orderbook()
     active_orders = mexc_client.get_active_orders()
     mexc_balance = mexc_client.get_balance()
@@ -232,20 +241,25 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 size = to_add + active_orders.asks[ask_id].size
                 size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
-                cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.asks[ask_id].id)
+                order_id = active_orders.asks[ask_id].id
+                cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=order_id)
 
                 if cancellation is not None:
-                    del active_orders.asks[ask_id]
+                    found = any(order_id == order.id for order in active_orders.asks)
+                    if found:
+                        del active_orders.asks[ask_id]
 
                     order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
 
                     if order_id is not None:
-                        active_orders.asks.append(OrderLevel(id=order_id, price=price, size=size))
-                        active_orders.asks.sort(key=lambda x: x.price)
+                        found = any(order_id == order.id for order in active_orders.asks)
+                        if not found:
+                            active_orders.asks.append(OrderLevel(id=order_id, price=price, size=size))
+                            active_orders.asks.sort(key=lambda x: x.price)
 
-                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        order = DatabaseOrder(pair='RMV-USDT', side='sell', price=price, size=size, order_id=order_id, timestamp=timestamp)
-                        await database_client.record_order(order=order, table_name="every_order_placed")
+                            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                            order = DatabaseOrder(pair='RMV-USDT', side='sell', price=price, size=size, order_id=order_id, timestamp=timestamp)
+                            await database_client.record_order(order=order, table_name="every_order_placed")
 
                         how_many_to_add_rmv -= to_add * price
                     else:
@@ -272,20 +286,25 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 size = to_add + active_orders.bids[bid_id].size
                 size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
-                cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=active_orders.bids[bid_id].id)
+                order_id = active_orders.bids[bid_id].id
+                cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=order_id)
 
                 if cancellation is not None:
-                    del active_orders.bids[bid_id]
+                    found = any(order_id == order.id for order in active_orders.bids)
+                    if found:
+                        del active_orders.bids[bid_id]
 
                     order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
 
                     if order_id is not None:
-                        active_orders.bids.append(OrderLevel(id=order_id, price=price, size=size))
-                        active_orders.bids.sort(key=lambda x: x.price, reverse=True)
+                        found = any(order_id == order.id for order in active_orders.bids)
+                        if not found:
+                            active_orders.bids.append(OrderLevel(id=order_id, price=price, size=size))
+                            active_orders.bids.sort(key=lambda x: x.price, reverse=True)
 
-                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        order = DatabaseOrder(pair='RMV-USDT', side='buy', price=price, size=size, order_id=order_id,timestamp=timestamp)
-                        await database_client.record_order(order=order, table_name="every_order_placed")
+                            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                            order = DatabaseOrder(pair='RMV-USDT', side='buy', price=price, size=size, order_id=order_id,timestamp=timestamp)
+                            await database_client.record_order(order=order, table_name="every_order_placed")
 
                         how_many_to_add_usdt -= to_add * price
                     else:

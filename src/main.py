@@ -6,7 +6,7 @@ from datetime import datetime
 from src.crypto.mexc.client import MexcClient
 from src.model import CryptoCurrency, DatabaseMarketState, QueueEvent, EventType
 from src.crypto.kucoin.client import KucoinClient
-from src.crypto.market.tracking import manage_orders, track_market_depth, reset_orders, fix_price_if_too_large_inventory_imbalance
+from src.crypto.market.tracking import manage_orders, check_market_depth, reset_orders, fix_price_if_too_large_inventory_imbalance
 from src.crypto.market.calculations import calculate_market_depth, calculate_fair_price, calculate_market_spread
 from loguru import logger
 from src.database.client import DatabaseClient
@@ -41,7 +41,6 @@ event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
 async def add_to_event_queue(event: QueueEvent):
     await event_queue.put(event)
 
-
 async def read_from_queue():
     while True:
         event = await event_queue.get()
@@ -56,7 +55,7 @@ async def read_from_queue():
                 await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client, database_client=database_client)
             elif event.type == EventType.MEXC_ORDERBOOK_UPDATE:
                 await manage_orders(mexc_client=mexc_client, kucoin_client=kucoin_client, database_client=database_client)
-                await track_market_depth(mexc_client=mexc_client, database_client=database_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
+                await check_market_depth(mexc_client=mexc_client, database_client=database_client, percent=Decimal(2), expected_market_depth=EXPECTED_MARKET_DEPTH)
             elif event.type == EventType.FILLED_ORDER:
                 ...
         except Exception as e:

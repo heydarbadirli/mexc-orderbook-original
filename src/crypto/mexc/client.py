@@ -144,6 +144,19 @@ class MexcClient(ExchangeClient):
                                     size = Decimal(str(data['quantity']))
                                     order_id = data['id']
 
+                                    orders = self.active_orders.bids if side == 'buy' else self.active_orders.asks
+                                    sort_reverse = True if side == 'buy' else False
+
+                                    found = any(order_id == order.id for order in orders)
+
+                                    if not found:
+                                        orders.append(OrderLevel(id=order_id, price=price, size=size))
+                                        orders.sort(key=lambda order: order.price, reverse=sort_reverse)
+
+                                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                                        order = DatabaseOrder(pair='RMV-USDT', side=side, price=price, size=size, order_id=order_id, timestamp=timestamp)
+                                        await self.database_client.record_order(order=order, table_name="every_order_placed")
+
                                     # if side == 'buy':
                                     #     found = any(d.id == order_id for d in self.active_orders.bids)
                                     # else:
@@ -189,9 +202,20 @@ class MexcClient(ExchangeClient):
                                     await self.database_client.record_order(order=order, table_name="orders")
 
                                     await self.add_to_event_queue(event=event)
-                                # elif data['status'] == 4 or data['status'] == 5:
-                                #     side = 'buy' if data['tradeType'] == 1 else 'sell'
-                                #     order_id = data['id']
+                                elif data['status'] == 4 or data['status'] == 5:
+                                    side = 'buy' if data['tradeType'] == 1 else 'sell'
+                                    order_id = data['id']
+
+                                    orders = self.active_orders.bids if side == 'buy' else self.active_orders.asks
+
+                                    found = any(order_id == order.id for order in orders)
+
+                                    if found:
+                                        for i in range(len(orders) - 1, -1, -1):
+                                            if order_id == orders[i].id:
+                                                del orders[i]
+                                                break
+
                                 #
                                 #     if side == 'buy':
                                 #         found = any(d.id == order_id for d in self.active_orders.bids)
