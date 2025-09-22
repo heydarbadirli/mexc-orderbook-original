@@ -140,10 +140,10 @@ def get_quotes(mexc_client: MexcClient, kucoin_client: KucoinClient):
     current_inventory = balance['RMV']['free'] + balance['RMV']['locked']
     half_spread = Decimal('0.00002')
     alpha = half_spread * Decimal('0.5')
-    normalize_inventory_position = (current_inventory - INVENTORY_BALANCE) / INVENTORY_LIMIT
+    normalized_inventory_position = (current_inventory - INVENTORY_BALANCE) / INVENTORY_LIMIT
 
-    ask_price = fair_price + half_spread - alpha * normalize_inventory_position
-    bid_price = fair_price - half_spread - alpha * normalize_inventory_position
+    ask_price = fair_price + half_spread - alpha * normalized_inventory_position
+    bid_price = fair_price - half_spread - alpha * normalized_inventory_position
 
     ask_price = ask_price.quantize(MEXC_TICK_SIZE, rounding=ROUND_HALF_UP)
     bid_price = bid_price.quantize(MEXC_TICK_SIZE, rounding=ROUND_HALF_UP)

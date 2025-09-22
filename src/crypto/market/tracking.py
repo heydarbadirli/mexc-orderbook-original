@@ -71,12 +71,12 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     if ask_price is None and bid_price is None or len(mexc_orderbook.asks) == 0 or len(mexc_orderbook.bids) == 0 or len(kucoin_orderbook.asks) == 0 or len(kucoin_orderbook.bids) == 0:
         return
 
-    if lowest_possible_ask_price != Decimal('0'):
-        ask_price = max(ask_price, lowest_possible_ask_price)
-        bid_price = ask_price - 4 * MEXC_TICK_SIZE
-    elif highest_possible_bid_price != Decimal('1'):
-        bid_price = min(bid_price, highest_possible_bid_price)
-        ask_price = bid_price + 4 * MEXC_TICK_SIZE
+    # if lowest_possible_ask_price != Decimal('0'):
+    #     ask_price = max(ask_price, lowest_possible_ask_price)
+    #     bid_price = ask_price - 4 * MEXC_TICK_SIZE
+    # elif highest_possible_bid_price != Decimal('1'):
+    #     bid_price = min(bid_price, highest_possible_bid_price)
+    #     ask_price = bid_price + 4 * MEXC_TICK_SIZE
 
     mid_price = (mexc_orderbook.asks[0].price + mexc_orderbook.bids[0].price) / 2
     # market depth within 2% on each side
@@ -170,6 +170,7 @@ async def track_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     mexc_orderbook = mexc_client.get_orderbook()
     active_orders = mexc_client.get_active_orders()
     mexc_balance = mexc_client.get_balance()
+
 
     if len(mexc_orderbook.asks) == 0 or len(mexc_orderbook.bids) == 0 or 'USDT' not in mexc_balance or 'RMV' not in mexc_balance:
         return None
