@@ -180,10 +180,8 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     active_orders = mexc_client.get_active_orders()
     mexc_balance = mexc_client.get_balance()
 
-
     if len(mexc_orderbook.asks) == 0 or len(mexc_orderbook.bids) == 0 or 'USDT' not in mexc_balance or 'RMV' not in mexc_balance:
         return None
-
 
     lowest_ask = mexc_orderbook.asks[0].price
     highest_bid = mexc_orderbook.bids[0].price
