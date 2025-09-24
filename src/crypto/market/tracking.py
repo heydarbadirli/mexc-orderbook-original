@@ -11,8 +11,8 @@ from loguru import logger
 
 MEXC_TICK_SIZE = Decimal('0.00001')
 
-INVENTORY_BALANCE = Decimal('320_000')
-INVENTORY_LIMIT = Decimal('120_000')
+INVENTORY_BALANCE = Decimal('500_000')
+INVENTORY_LIMIT = Decimal('200_000')
 
 lowest_possible_ask_price = Decimal('0')
 highest_possible_bid_price = Decimal('0')
