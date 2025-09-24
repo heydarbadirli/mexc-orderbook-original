@@ -338,15 +338,6 @@ class MexcClient(ExchangeClient):
                     text = await response.text()
                     if response.status == 200:
                         data = await response.json()
-                        # logger.info(f"Successfully placed order: {data}")
-                        # try:
-                        #     caller_frame = inspect.stack()[1]
-                        #     caller_file = caller_frame.filename
-                        #     caller_line = caller_frame.lineno
-                        #     caller_func = caller_frame.function
-                        #     logger.info(f"Called from {caller_func} in {caller_file} at line {caller_line}")
-                        # except Exception as e:
-                        #     logger.error(f"Error: {e}")
                         return data['orderId']
                     else:
                         logger.error(f'Order failed: {text}, price: {price}, size: {size}, side: {side},  balances: {self.balance}')
@@ -383,15 +374,6 @@ class MexcClient(ExchangeClient):
                 data = await response.json()
 
                 if response.status == 200:
-                    # logger.info(f'Successfully canceled order: {data}')
-                    # try:
-                    #     caller_frame = inspect.stack()[1]
-                    #     caller_file = caller_frame.filename
-                    #     caller_line = caller_frame.lineno
-                    #     caller_func = caller_frame.function
-                    #     logger.info(f"Called from {caller_func} in {caller_file} at line {caller_line}")
-                    # except Exception as e:
-                    #     logger.error(f"Error: {e}")
                     return data
                 else:
                     logger.error(f'Order cancellation failed: {data}, order_id: {order_id}')
