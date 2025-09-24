@@ -13,6 +13,12 @@ market/tracking.py contains 3 function:
 2) manage_orders: cancels orders that are incorrect (too big size, bad price, etc.) and adds new orders to always have some number of bids and asks: we can set that number in code, basically it is 5
 3) check_market_depth: checks if market depth is as expected, if not it iterates through our active orders and add volume, how many add first currency and second is calculated based on ratio
 
+market/calculations.py contains functions related to calculate different parameters of market
+1) calculate_market_depth: calculates market depth of the market within some percent that we can set
+2) calculate_fair_price: calculates fair price using formula for cross-exchanged fair price, we can set if we want to include our orders in calculating liquidity and mid-price
+3) calculate_market_spread: calculates marked spread
+4) get_quotes: calculates at which price we should place the lowest ask and the highest bid
+
 There are several functions running concurrently
 1) updating kucoin_orderbook via websockets
 2) updating mexc_orderbook via websockets

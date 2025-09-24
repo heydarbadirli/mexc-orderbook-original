@@ -9,23 +9,21 @@ class CryptoCurrency(Enum):
     RMV = "RMV"
     USDT = "USDT"
 
-
 class OrderLevel(msgspec.Struct):
     id: str
     price: Decimal
     size: Decimal
 
-
 class OrderBook(msgspec.Struct):
     asks: list[OrderLevel]
     bids: list[OrderLevel]
 
-
 class ExchangeClient(ABC):
-    @abstractmethod
-    def get_orderbook(self) -> OrderBook:
-        ...
+    def __init__(self):
+        self.orderbook = OrderBook(asks=[], bids=[])
 
+    def get_orderbook(self) -> OrderBook:
+        return self.orderbook
 
 @dataclass
 class DatabaseOrder:
@@ -35,7 +33,6 @@ class DatabaseOrder:
     size: Decimal
     order_id: str
     timestamp: str
-
 
 @dataclass
 class DatabaseMarketState:
@@ -47,12 +44,10 @@ class DatabaseMarketState:
     rmv_value: Decimal
     timestamp: str
 
-
 class EventType(Enum):
     KUCOIN_ORDERBOOK_UPDATE = auto()
     MEXC_ORDERBOOK_UPDATE = auto()
     FILLED_ORDER = auto()
-
 
 @dataclass
 class QueueEvent:

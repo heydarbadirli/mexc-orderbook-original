@@ -17,10 +17,10 @@ from datetime import datetime
 import inspect
 
 class MexcClient(ExchangeClient):
-    def  __init__(self, api_key: str, api_secret: str, database_client: DatabaseClient, add_to_event_queue=None):
+    def __init__(self, api_key: str, api_secret: str, database_client: DatabaseClient, add_to_event_queue=None):
+        super().__init__()
         self.api_key = api_key
         self.api_secret = api_secret
-        self.orderbook = OrderBook(asks=[], bids=[])
         self.balance = {}
         self.ws_base_url = "wss://wbs-api.mexc.com/ws"
         self.rest_base_url = "https://api.mexc.com"
@@ -31,30 +31,20 @@ class MexcClient(ExchangeClient):
         self.amount_sold = Decimal('0')
         self.amount_bought = Decimal('0')
 
-
-    def get_orderbook(self):
-        return self.orderbook
-
-
     def get_balance(self):
         return self.balance
-
 
     def get_active_orders(self):
         return self.active_orders
 
-
     def get_amount_bought(self):
         return self.amount_bought
-
 
     def get_amount_sold(self):
         return self.amount_sold
 
-
     def get_signature(self, query_string: str):
         return hmac.new(self.api_secret.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest()
-
 
     async def reset_bought_and_sold_amounts(self):
         while True:
@@ -84,7 +74,6 @@ class MexcClient(ExchangeClient):
                 data = await response.json()
                 return data['listenKey']
 
-
     async def extend_listen_key(self, listen_key):
         while True:
             await asyncio.sleep(30 * 60)
@@ -109,7 +98,6 @@ class MexcClient(ExchangeClient):
                 async with session.put(url, headers=headers, params=params) as response:
                     data = await response.json()
                     logger.info(f'Extended listenKey: {data}')
-
 
     async def track_active_orders(self, listen_key: str):
         url = f'{self.ws_base_url}?listenKey={listen_key}'
@@ -156,21 +144,6 @@ class MexcClient(ExchangeClient):
                                         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                                         order = DatabaseOrder(pair='RMV-USDT', side=side, price=price, size=size, order_id=order_id, timestamp=timestamp)
                                         await self.database_client.record_order(order=order, table_name="every_order_placed")
-
-                                    # if side == 'buy':
-                                    #     found = any(d.id == order_id for d in self.active_orders.bids)
-                                    # else:
-                                    #     found = any(d.id == order_id for d in self.active_orders.asks)
-                                    #
-                                    # if not found:
-                                    #     logger.error(f"NOT FOUND order in active orders: {data}")
-
-                                    # if side == 'buy':
-                                    #     self.active_orders.bids.append(OrderLevel(id=order_id, price=price, size=size))
-                                    #     self.active_orders.bids.sort(key=lambda x: x.price, reverse=True)
-                                    # else:
-                                    #     self.active_orders.asks.append(OrderLevel(id=order_id, price=price, size=size))
-                                    #     self.active_orders.asks.sort(key=lambda x: x.price)
                                 elif data['status'] == 2 or data['status'] == 3:
                                     side = 'buy' if data['tradeType'] == 1 else 'sell'
                                     order_id = data['id']
@@ -216,40 +189,16 @@ class MexcClient(ExchangeClient):
                                                 del orders[i]
                                                 break
 
-                                #
-                                #     if side == 'buy':
-                                #         found = any(d.id == order_id for d in self.active_orders.bids)
-                                #     else:
-                                #         found = any(d.id == order_id for d in self.active_orders.asks)
-                                #
-                                #     if found:
-                                #         logger.error(f"FOUND order in active orders, THIS ORDER SHOULD NOT EXISTS: {data}")
-
-                                    # if side == 'buy':
-                                    #     for i in range(len(self.active_orders.bids) - 1, -1, -1):
-                                    #         if self.active_orders.bids[i].id == order_id:
-                                    #             del self.active_orders.bids[i]
-                                    #             break
-                                    # else:
-                                    #     for i in range(len(self.active_orders.asks) - 1, -1, -1):
-                                    #         if self.active_orders.asks[i].id == order_id:
-                                    #             del self.active_orders.asks[i]
-                                    #             break
-
                                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                                 await self.database_client.record_orderbook(table='our_orders', exchange='mexc', orderbook=self.active_orders, timestamp=timestamp)
-
                         except Exception as e:
                             logger.error(f"Error: {e}")
-
             except websockets.exceptions.ConnectionClosedOK as e:
                 logger.info(f"WebSocket closed normally (1000 Bye): {e}. Reconnecting...")
                 await asyncio.sleep(5)
-
             except Exception as e:
                 logger.error(f"Error: {e}")
                 await asyncio.sleep(5)
-
 
     async def get_balance_snapshot(self):
         try:
@@ -278,7 +227,6 @@ class MexcClient(ExchangeClient):
                             self.balance[token['asset']] = {'free': Decimal(token['free']), 'locked': Decimal(token['locked'])}
         except Exception as e:
             logger.error(f'error: {e}')
-
 
     async def track_balance(self, listen_key: str):
         url = f'{self.ws_base_url}?listenKey={listen_key}'
@@ -316,7 +264,6 @@ class MexcClient(ExchangeClient):
             except Exception as e:
                 logger.error(f"Websocket connection error: {e}")
                 await asyncio.sleep(5)
-
 
     async def update_orderbook(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
         symbol = first_currency.value + second_currency.value
@@ -360,7 +307,6 @@ class MexcClient(ExchangeClient):
             except Exception as e:
                 logger.error(f'WebSocket connection error: {e}')
                 await asyncio.sleep(5)
-
 
     async def place_limit_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, side: str, order_type: str, size: Decimal, price: Decimal):
         async with self.lock:
@@ -414,7 +360,6 @@ class MexcClient(ExchangeClient):
                             logger.error(f"Error: {e}")
                         return None
 
-
     async def cancel_order(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency, order_id: str):
         symbol = first_currency.value + second_currency.value
         url = self.rest_base_url + '/api/v3/order'
@@ -460,7 +405,6 @@ class MexcClient(ExchangeClient):
                         logger.error(f"Error: {e}")
                     return None
 
-
     async def cancel_all_orders(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
         timestamp = round(time.time() * 1000)
         symbol = first_currency.value + second_currency.value
@@ -473,11 +417,6 @@ class MexcClient(ExchangeClient):
 
         query_string = '&'.join([f'{key}={params[key]}' for key in sorted(params.keys())])
         signature = self.get_signature(query_string=query_string)
-        # query_string += f'&signature={signature}'
-
-        # async with aiohttp.ClientSession() as session:
-        #     async with session.delete(url, params=params) as response:
-        #         data = await response.json()
 
         cancel_endpoint = f'/api/v3/openOrders?api_key={self.api_key}' + '&symbol=RMVUSDT' + '&' + 'timestamp=' + str(timestamp) + '&' + 'signature=' + signature
 

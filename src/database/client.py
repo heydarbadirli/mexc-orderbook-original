@@ -12,7 +12,6 @@ class DatabaseClient:
         self.connection = None
         self.pool = None
 
-
     async def connect(self):
         self.pool = await aiomysql.create_pool(
             host=self.host,
@@ -81,7 +80,6 @@ class DatabaseClient:
                         )
                     """)
 
-
     async def record_order(self, order: DatabaseOrder, table_name: str):
         if table_name == 'orders':
             logger.info(f'Recording order: {order}')
@@ -96,7 +94,6 @@ class DatabaseClient:
             except Exception as e:
                 logger.error(f"Failed to record order: {e}")
 
-
     async def record_market_state(self, market_state: DatabaseMarketState):
         async with self.pool.acquire() as connection:
             async with connection.cursor() as cursor:
@@ -107,7 +104,6 @@ class DatabaseClient:
                     """, (market_state.market_depth.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.fair_price.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.market_spread.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.usdt_balance.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.rmv_balance.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.rmv_value.quantize(Decimal('0.00000001'), rounding=ROUND_HALF_UP), market_state.timestamp))
                 except Exception as e:
                     logger.error(f"Failed to record market state: {e}")
-
 
     async def record_orderbook(self, table: str, exchange: str, orderbook: OrderBook, timestamp: str):
         values = []
@@ -133,7 +129,6 @@ class DatabaseClient:
                     """, (exchange, "RMV-USDT", timestamp, *values))
                 except Exception as e:
                     logger.error(f"Failer to record {exchange} orderbook: {e}")
-
 
     async def close(self):
         if self.pool:

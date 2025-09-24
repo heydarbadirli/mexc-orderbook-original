@@ -8,9 +8,6 @@ MEXC_TICK_SIZE = Decimal('0.00001')
 INVENTORY_BALANCE = Decimal('320_000')
 INVENTORY_LIMIT = Decimal('120_000')
 
-# calculate_market_depth:
-# calculates market depth by getting upper price and lower price and adding sizes of orders
-
 def calculate_market_depth(client: ExchangeClient, percent: Decimal) -> Decimal:
     orderbook = client.get_orderbook()
 
@@ -39,9 +36,6 @@ def calculate_market_depth(client: ExchangeClient, percent: Decimal) -> Decimal:
 
     return market_depth
 
-# calculate_fair_price
-# it calculates fair price using cross exchanges formula
-# takes mid-price from mexc and kucoin and liquidity on both exchanges
 
 def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, active_bids: list[OrderLevel], active_asks: list[OrderLevel], percent: Decimal):
     mexc_orderbook = mexc_client.get_orderbook()

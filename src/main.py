@@ -32,19 +32,13 @@ EXPECTED_MARKET_DEPTH = Decimal(3000)
 
 event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
 
-# there is event queue which is queue where functions puts event that are important for keeping orders with correct price and for keeping market depth
-# there are two functions that that update orderbook: one updates kucoin_orderbook (kucoin_client.update_orderbook) and the other one updates mexc_orderbook (mexc_client.update_orderbook)
-# when orderbook change they put event to queue
-# there is function that tracks our active orders and when some order is filled it put event on the queue
-# read_from_queue() is running all the time and in case of each type of event, invoke different function
-
 async def add_to_event_queue(event: QueueEvent):
     await event_queue.put(event)
+
 
 async def read_from_queue():
     while True:
         event = await event_queue.get()
-        # logger.info(f'q size: {event_queue.qsize()}')
 
         if not event or event.type is None:
             logger.warning(f'Skipping invalid event: {event}')
@@ -62,7 +56,6 @@ async def read_from_queue():
             logger.error(f"error type: {type(e)}, details: {e}")
             logger.error(traceback.format_exc())
 
-# handle exit cancels all our active orders when the program ends
 
 def handle_exit(sig, frame):
     asyncio.get_event_loop().create_task(cancel_orders_and_exit())
@@ -83,8 +76,7 @@ database_client = DatabaseClient(host=mysql_host, user=mysql_user, password=mysq
 mexc_client = MexcClient(api_key=api_key_mexc, api_secret=api_secret_mexc, add_to_event_queue=add_to_event_queue, database_client=database_client)
 kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoin, api_passphrase=api_passphrase_kucoin, add_to_event_queue=add_to_event_queue, database_client=database_client)
 
-
-async def main(): # all o this run concurrently
+async def main():
     await asyncio.sleep(30)
 
     await mexc_client.cancel_all_orders(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT)

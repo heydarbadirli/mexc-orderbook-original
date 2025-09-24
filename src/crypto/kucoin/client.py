@@ -14,22 +14,12 @@ from datetime import datetime
 
 class KucoinClient(ExchangeClient):
     def __init__(self, api_key: str, api_secret: str, api_passphrase: str, database_client: DatabaseClient, add_to_event_queue=None):
-        self.orderbook = OrderBook(asks=[], bids=[])
-        self.balances = {}
+        super().__init__()
         self.add_to_event_queue = add_to_event_queue
         self.api_key = api_key
         self.api_secret = api_secret
         self.api_passphrase = api_passphrase
         self.database_client = database_client
-
-
-    def get_orderbook(self):
-        return self.orderbook
-
-
-    def get_balance(self):
-        return self.balances
-
 
     @staticmethod
     async def _get_ws_url_public():
@@ -43,7 +33,6 @@ class KucoinClient(ExchangeClient):
         ws_url = parsed_data["data"]["instanceServers"][0]["endpoint"] + "?token=" + parsed_data["data"]["token"]
 
         return ws_url
-
 
     async def update_orderbook(self, first_currency: CryptoCurrency, second_currency: CryptoCurrency):
         symbol = first_currency.value + '-' + second_currency.value

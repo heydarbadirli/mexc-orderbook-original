@@ -50,12 +50,6 @@ async def fix_price_if_too_large_inventory_imbalance(mexc_client: MexcClient, ku
             lowest_possible_ask_price = Decimal('0')
             highest_possible_bid_price = Decimal('1')
 
-# manage_orders:
-# it calculates fair price, and basically it places orders +- two mexc tick sizes from fair price
-# it takes inventory balance into account and shifts orders up or down if necessary
-# if we have more than 5 active asks or bids it cancels them
-# if some of our asks/bids price is too low/high it also cancels them
-# it checks 5 levels of prices for bids and asks na if we don't have order on that level, we place it
 
 async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, database_client: DatabaseClient):
     mexc_orderbook = mexc_client.get_orderbook()
@@ -78,7 +72,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
     #     ask_price = bid_price + 4 * MEXC_TICK_SIZE
 
     mid_price = (mexc_orderbook.asks[0].price + mexc_orderbook.bids[0].price) / 2
-    # market depth within 2% on each side
     upper_bound = mid_price * Decimal('1.02')
     lower_bound = mid_price * Decimal('0.98')
 
@@ -170,10 +163,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
 
         bid_price -= MEXC_TICK_SIZE
 
-# track_market_depth
-# it calculates market depth and if it is below expected_market_depth it add size to our orders
-# first it add to highest asks and lowest bids and so on
-# it also takes into account inventory balance and calculates ration of usdt balance and rmv balance and add more size on the side that we have more currency
 
 async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseClient, percent: Decimal, expected_market_depth: Decimal):
     mexc_orderbook = mexc_client.get_orderbook()
