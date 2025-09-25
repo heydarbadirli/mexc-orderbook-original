@@ -223,7 +223,7 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         stopper = 0
 
         while how_many_to_add_rmv > 1 and stopper < 100 and len(active_orders.asks) > 1:
-            logger.info(f'how many to add rmv: {how_many_to_add_rmv}')
+            # logger.info(f'how many to add rmv: {how_many_to_add_rmv}')
             if mexc_balance['RMV']['free'] < 400:
                 logger.warning('to small balance to add RMV volume')
                 break
@@ -273,7 +273,7 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         stopper = 0
 
         while how_many_to_add_usdt > 1 and stopper < 100 and len(active_orders.bids) > 1:
-            logger.info(f'how many to add usdt: {how_many_to_add_usdt}')
+            # logger.info(f'how many to add usdt: {how_many_to_add_usdt}')
             if mexc_balance['USDT']['free'] < 1:
                 logger.warning('to small balance to add usdt volume')
                 break
@@ -289,9 +289,9 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                 size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
                 order_id = active_orders.bids[bid_id].id
-                logger.info("start")
+                # logger.info("start")
                 cancellation = await mexc_client.cancel_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, order_id=order_id)
-                logger.info("end")
+                # logger.info("end")
 
                 if cancellation is not None:
                     for j in range(len(active_orders.bids)):
@@ -301,9 +301,9 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                     # found = any(order_id == order.id for order in active_orders.bids)
                     # if found:
                     #     del active_orders.bids[bid_id]
-                    logger.info("start placing")
+                    # logger.info("start placing")
                     order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
-                    logger.info("end placing")
+                    # logger.info("end placing")
 
                     if order_id is not None:
                         found = any(order_id == order.id for order in active_orders.bids)
