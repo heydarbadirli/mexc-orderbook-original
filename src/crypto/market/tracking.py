@@ -138,7 +138,7 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
     active_orders = mexc_client.get_active_orders()
     mexc_balance = mexc_client.get_balance()
 
-    if len(mexc_orderbook.asks) == 0 or len(mexc_orderbook.bids) == 0 or 'USDT' not in mexc_balance or 'RMV' not in mexc_balance:
+    if len(mexc_orderbook.asks) == 0 or len(mexc_orderbook.bids) == 0 or 'USDT' not in mexc_balance or 'RMV' not in mexc_balance or len(active_orders.asks) == 0 or len(active_orders.bids) == 0:
         return None
 
     lowest_ask = mexc_orderbook.asks[0].price
@@ -150,7 +150,7 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
 
     market_depth = calculate_market_depth(client=mexc_client, percent=percent)
 
-    if len(active_orders.asks) == 0 or len(active_orders.bids) == 0:
+    if len(active_orders.asks) == 0 or len(active_orders.bids) == 0: # market depth if there is no enough balance to place bid/ask
         market_depth = 0
 
         for ask in active_orders.asks:
@@ -161,8 +161,7 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
         logger.warning(f'market depth: {market_depth}')
 
 
-    if market_depth < expected_market_depth * Decimal('0.98'):
-        mexc_orderbook = mexc_client.get_orderbook()
+    if market_depth < expected_market_depth * Decimal('0.999'):
         how_many_to_add = expected_market_depth - market_depth
 
         usdt_balance = mexc_balance['USDT']['free']
@@ -193,7 +192,7 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             if 1 <= ask_id and active_orders.asks[ask_id].size < Decimal(290_000) and upper_bound >= active_orders.asks[ask_id].price:
                 price = active_orders.asks[ask_id].price
 
-                to_add = Decimal(min(random.randint(8_000, 10_000), mexc_balance['RMV']['free'] * Decimal('0.999')))
+                to_add = Decimal(min(random.randint(50_000, 80_000), mexc_balance['RMV']['free'] * Decimal('0.999')))
                 size = to_add + active_orders.asks[ask_id].size
                 size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
@@ -239,7 +238,7 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
             if 1 <= bid_id and active_orders.bids[bid_id].size < Decimal(290_000) and lower_bound <= active_orders.bids[bid_id].price:
                 price = active_orders.bids[bid_id].price
 
-                to_add = Decimal(min(random.randint(8_000, 10_000), mexc_balance['USDT']['free'] / price * Decimal('0.999')))
+                to_add = Decimal(min(random.randint(50_000, 80_000), mexc_balance['USDT']['free'] / price * Decimal('0.999')))
                 size = to_add + active_orders.bids[bid_id].size
                 size = size.quantize(Decimal('1'), rounding=ROUND_DOWN)
 
