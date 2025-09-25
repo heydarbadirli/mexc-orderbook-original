@@ -26,9 +26,12 @@ class OrderBook(msgspec.Struct):
     bids: list[OrderLevel]
 
 class ExchangeClient(ABC):
-    def __init__(self, add_to_event_queue=None):
+    def __init__(self, database_client, add_to_event_queue, api_key: str, api_secret: str):
         self.orderbook = OrderBook(asks=[], bids=[])
         self.add_to_event_queue = add_to_event_queue
+        self.database_client = database_client
+        self.api_key = api_key
+        self.api_secret = api_secret
 
     def get_orderbook(self) -> OrderBook:
         return self.orderbook

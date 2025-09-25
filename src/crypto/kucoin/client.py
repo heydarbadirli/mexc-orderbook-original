@@ -14,11 +14,9 @@ from datetime import datetime
 
 class KucoinClient(ExchangeClient):
     def __init__(self, api_key: str, api_secret: str, api_passphrase: str, database_client: DatabaseClient, add_to_event_queue=None):
-        super().__init__(add_to_event_queue=add_to_event_queue)
-        self.api_key = api_key
-        self.api_secret = api_secret
+        super().__init__(add_to_event_queue=add_to_event_queue, database_client=database_client, api_key=api_key, api_secret=api_secret)
+
         self.api_passphrase = api_passphrase
-        self.database_client = database_client
 
     @staticmethod
     async def _get_ws_url_public():
