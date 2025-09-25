@@ -5,6 +5,9 @@ import msgspec
 from dataclasses import dataclass
 from typing import Any
 
+INVENTORY_BALANCE = Decimal('500_000')
+INVENTORY_LIMIT = Decimal('200_000')
+
 class CryptoCurrency(Enum):
     RMV = "RMV"
     USDT = "USDT"

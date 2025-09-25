@@ -1,12 +1,12 @@
 from decimal import Decimal, ROUND_HALF_DOWN, ROUND_HALF_UP
 from src.crypto.mexc.client import MexcClient
 from src.crypto.kucoin.client import KucoinClient
-from src.model import ExchangeClient, OrderLevel
+from src.model import ExchangeClient, OrderLevel, INVENTORY_BALANCE, INVENTORY_LIMIT
 
 MEXC_TICK_SIZE = Decimal('0.00001')
 
-INVENTORY_BALANCE = Decimal('320_000')
-INVENTORY_LIMIT = Decimal('120_000')
+# INVENTORY_BALANCE = Decimal('500_000')
+# INVENTORY_LIMIT = Decimal('200_000')
 
 def calculate_market_depth(client: ExchangeClient, percent: Decimal) -> Decimal:
     orderbook = client.get_orderbook()
