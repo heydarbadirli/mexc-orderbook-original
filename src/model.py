@@ -5,6 +5,8 @@ import msgspec
 from dataclasses import dataclass
 from typing import Any
 
+MEXC_TICK_SIZE = Decimal('0.00001')
+
 INVENTORY_BALANCE = Decimal('500_000')
 INVENTORY_LIMIT = Decimal('200_000')
 

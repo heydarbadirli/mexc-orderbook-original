@@ -1,5 +1,5 @@
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
-from src.model import CryptoCurrency, DatabaseOrder, OrderBook, OrderLevel, ExchangeClient
+from src.model import CryptoCurrency, DatabaseOrder, OrderBook, OrderLevel, ExchangeClient, MEXC_TICK_SIZE, INVENTORY_BALANCE, INVENTORY_LIMIT
 from src.crypto.mexc.client import MexcClient
 from src.crypto.kucoin.client import KucoinClient
 import random
@@ -7,10 +7,7 @@ import asyncio
 from src.crypto.market.calculations import calculate_fair_price, calculate_market_depth, get_quotes
 from src.database.client import DatabaseClient
 from datetime import datetime
-from src.model import INVENTORY_BALANCE, INVENTORY_LIMIT
 from loguru import logger
-
-MEXC_TICK_SIZE = Decimal('0.00001')
 
 lowest_possible_ask_price = Decimal('0')
 highest_possible_bid_price = Decimal('0')
@@ -26,6 +23,7 @@ async def reset_orders(mexc_client: MexcClient):
         if cancellation is not None:
             active_orders.asks.clear()
             active_orders.bids.clear()
+
 
 async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, database_client: DatabaseClient):
     mexc_orderbook = mexc_client.get_orderbook()
