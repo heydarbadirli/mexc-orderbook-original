@@ -18,16 +18,15 @@ import inspect
 
 class MexcClient(ExchangeClient):
     def __init__(self, api_key: str, api_secret: str, database_client: DatabaseClient, add_to_event_queue=None):
-        super().__init__()
+        super().__init__(add_to_event_queue=add_to_event_queue)
+        self.database_client = database_client
         self.api_key = api_key
         self.api_secret = api_secret
         self.balance = {}
         self.ws_base_url = "wss://wbs-api.mexc.com/ws"
         self.rest_base_url = "https://api.mexc.com"
-        self.add_to_event_queue = add_to_event_queue
         self.lock = asyncio.Lock()
         self.active_orders = OrderBook(asks=[], bids=[])
-        self.database_client = database_client
         self.amount_sold = Decimal('0')
         self.amount_bought = Decimal('0')
 

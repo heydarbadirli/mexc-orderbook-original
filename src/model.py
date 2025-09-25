@@ -7,6 +7,7 @@ from typing import Any
 
 INVENTORY_BALANCE = Decimal('500_000')
 INVENTORY_LIMIT = Decimal('200_000')
+
 EXPECTED_MARKET_DEPTH = Decimal(3000)
 
 class CryptoCurrency(Enum):
@@ -23,8 +24,9 @@ class OrderBook(msgspec.Struct):
     bids: list[OrderLevel]
 
 class ExchangeClient(ABC):
-    def __init__(self):
+    def __init__(self, add_to_event_queue=None):
         self.orderbook = OrderBook(asks=[], bids=[])
+        self.add_to_event_queue = add_to_event_queue
 
     def get_orderbook(self) -> OrderBook:
         return self.orderbook
