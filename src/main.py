@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 from decimal import Decimal, getcontext
 from datetime import datetime
 from src.crypto.mexc.client import MexcClient
-from src.model import CryptoCurrency, DatabaseMarketState, QueueEvent, EventType
+from src.model import CryptoCurrency, DatabaseMarketState, QueueEvent, EventType, EXPECTED_MARKET_DEPTH
 from src.crypto.kucoin.client import KucoinClient
-from src.crypto.market.tracking import manage_orders, check_market_depth, reset_orders, fix_price_if_too_large_inventory_imbalance
+from src.crypto.market.tracking import manage_orders, check_market_depth, reset_orders
 from src.crypto.market.calculations import calculate_market_depth, calculate_fair_price, calculate_market_spread
 from loguru import logger
 from src.database.client import DatabaseClient
@@ -27,8 +27,6 @@ api_passphrase_kucoin = os.getenv("API_PASSPHRASE_KUCOIN")
 mysql_host = os.getenv("MYSQL_HOST")
 mysql_user = os.getenv("MYSQL_USER")
 mysql_password = os.getenv("MYSQL_PASSWORD")
-
-EXPECTED_MARKET_DEPTH = Decimal(3000)
 
 event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
 
@@ -93,9 +91,6 @@ async def main():
 
     asyncio.create_task(read_from_queue())
     asyncio.create_task(reset_orders(mexc_client=mexc_client))
-
-    asyncio.create_task(fix_price_if_too_large_inventory_imbalance(mexc_client=mexc_client, kucoin_client=kucoin_client))
-    asyncio.create_task(mexc_client.reset_bought_and_sold_amounts())
 
     mexc_balance = mexc_client.get_balance()
     active_orders = mexc_client.get_active_orders()

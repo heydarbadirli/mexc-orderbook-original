@@ -46,12 +46,6 @@ class MexcClient(ExchangeClient):
     def get_signature(self, query_string: str):
         return hmac.new(self.api_secret.encode('utf-8'), query_string.encode('utf-8'), hashlib.sha256).hexdigest()
 
-    async def reset_bought_and_sold_amounts(self):
-        while True:
-            await asyncio.sleep(45 * 60)
-            self.amount_sold = Decimal('0')
-            self.amount_bought = Decimal('0')
-
     async def create_listen_key(self):
         url = self.rest_base_url + '/api/v3/userDataStream'
 
