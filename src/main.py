@@ -96,50 +96,53 @@ async def main():
     active_orders = mexc_client.get_active_orders()
 
     while True:
-        await asyncio.sleep(10)
-        logger.info('start')
+        await asyncio.sleep(1)
+        try:
+            logger.info('start')
 
-        market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
-        fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=[], active_bids=[], percent=Decimal('2'))
-        market_spread = calculate_market_spread(client=mexc_client)
+            market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
+            fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=[], active_bids=[], percent=Decimal('2'))
+            market_spread = calculate_market_spread(client=mexc_client)
 
-        logger.info(f"market depth: {market_depth}")
-        logger.info(f"fair price: {fair_price}")
-        logger.info(f"market spread: {market_spread}")
-        logger.info(f'len of active asks: {len(active_orders.asks)}')
-        logger.info(f'asks: {active_orders.asks}')
-        logger.info(f'len of active bids: {len(active_orders.bids)}')
-        logger.info(f'bids: {active_orders.bids}')
+            logger.info(f"market depth: {market_depth}")
+            logger.info(f"fair price: {fair_price}")
+            logger.info(f"market spread: {market_spread}")
+            logger.info(f'len of active asks: {len(active_orders.asks)}')
+            logger.info(f'asks: {active_orders.asks}')
+            logger.info(f'len of active bids: {len(active_orders.bids)}')
+            logger.info(f'bids: {active_orders.bids}')
 
-        for i in range(1, len(active_orders.asks)):
-            if active_orders.asks[i].price == active_orders.asks[i - 1].price:
-                logger.error('Something is wrong')
+            for i in range(1, len(active_orders.asks)):
+                if active_orders.asks[i].price == active_orders.asks[i - 1].price:
+                    logger.error('Something is wrong')
 
-        for i in range(1, len(active_orders.bids)):
-            if active_orders.bids[i].price == active_orders.bids[i - 1].price:
-                logger.error('Something is wrong')
+            for i in range(1, len(active_orders.bids)):
+                if active_orders.bids[i].price == active_orders.bids[i - 1].price:
+                    logger.error('Something is wrong')
 
-        if fair_price is None:
-            print()
-            continue
+            if fair_price is None:
+                print()
+                continue
 
-        logger.info(f"usdt free balance: {mexc_balance['USDT']['free']}")
-        logger.info(f"usdt locked balance: {mexc_balance['USDT']['locked']}")
-        logger.info(f"usdt full balance: {mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked']}")
+            logger.info(f"usdt free balance: {mexc_balance['USDT']['free']}")
+            logger.info(f"usdt locked balance: {mexc_balance['USDT']['locked']}")
+            logger.info(f"usdt full balance: {mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked']}")
 
-        logger.info(f"rmv free balance {mexc_balance['RMV']['free']}, approximated usd value: {mexc_balance['RMV']['free'] * fair_price}")
-        logger.info(f"rmv locked balance: {mexc_balance['RMV']['locked']}, approximate usd value: {mexc_balance['RMV']['locked'] * fair_price}")
-        logger.info(f"rmv full balance: {mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked']}, approximated usd value: {(mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked']) * fair_price}")
+            logger.info(f"rmv free balance {mexc_balance['RMV']['free']}, approximated usd value: {mexc_balance['RMV']['free'] * fair_price}")
+            logger.info(f"rmv locked balance: {mexc_balance['RMV']['locked']}, approximate usd value: {mexc_balance['RMV']['locked'] * fair_price}")
+            logger.info(f"rmv full balance: {mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked']}, approximated usd value: {(mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked']) * fair_price}")
 
-        full_account_balance = mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'] + (mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked']) * fair_price
-        logger.info(f"full_account_balance: {full_account_balance}")
+            full_account_balance = mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'] + (mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked']) * fair_price
+            logger.info(f"full_account_balance: {full_account_balance}")
 
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'], rmv_balance=mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'], rmv_value=mexc_balance['RMV']['free'] * fair_price + mexc_balance['RMV']['locked'] * fair_price, timestamp=timestamp)
-        await database_client.record_market_state(market_state=market_state)
+            market_state = DatabaseMarketState(market_depth=market_depth, fair_price=fair_price, market_spread=market_spread, usdt_balance=mexc_balance['USDT']['free'] + mexc_balance['USDT']['locked'], rmv_balance=mexc_balance['RMV']['free'] + mexc_balance['RMV']['locked'], rmv_value=mexc_balance['RMV']['free'] * fair_price + mexc_balance['RMV']['locked'] * fair_price, timestamp=timestamp)
+            await database_client.record_market_state(market_state=market_state)
 
-        logger.info('end\n')
+            logger.info('end\n')
+        except Exception as e:
+            logger.error(e)
 
 if __name__ == '__main__':
     asyncio.run(main())

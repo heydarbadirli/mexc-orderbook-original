@@ -53,11 +53,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
                         del active_orders.asks[j]
                         break
 
-                # for j in range(len(active_orders.asks)):
-                #     if active_orders.asks[j].id == order_id:
-                #         del active_orders.asks[j]
-                #         break
-
     for i in range(len(active_orders.bids) - 1, -1, -1):
         if (active_orders.bids[i].price >= bid_price + MEXC_TICK_SIZE) or (active_orders.bids[i].price <= bid_price - number_of_bids * MEXC_TICK_SIZE) or (active_orders.bids[i].price == bid_price and active_orders.bids[i].size > Decimal('5_000')) or (active_orders.bids[i].price < lower_bound and active_orders.bids[i].size > Decimal('20_000')):
             order_id = active_orders.bids[i].id
@@ -67,11 +62,6 @@ async def manage_orders(mexc_client: MexcClient, kucoin_client: KucoinClient, da
                 for j, order in enumerate(active_orders.bids):
                     if order.id == order_id:
                         del active_orders.bids[j]
-
-                # for j in range(len(active_orders.bids)):
-                #     if active_orders.bids[j].id == order_id:
-                #         del active_orders.bids[j]
-                #         break
 
     max_size = Decimal('0')
     if len(active_orders.asks) < number_of_asks:
@@ -214,11 +204,6 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                             del active_orders.asks[i]
                             break
 
-                    # for j in range(len(active_orders.asks)):
-                    #     if active_orders.asks[j].id == order_id:
-                    #         del active_orders.asks[j]
-                    #         break
-
                     order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='sell', order_type='limit', size=size, price=price)
 
                     if order_id is not None:
@@ -264,11 +249,6 @@ async def check_market_depth(mexc_client: MexcClient, database_client: DatabaseC
                         if order.id == order_id:
                             del active_orders.bids[i]
                             break
-
-                    # for j in range(len(active_orders.bids)):
-                    #     if active_orders.bids[j].id == order_id:
-                    #         del active_orders.bids[j]
-                    #         break
 
                     order_id = await mexc_client.place_limit_order(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT, side='buy', order_type='limit', size=size, price=price)
 
