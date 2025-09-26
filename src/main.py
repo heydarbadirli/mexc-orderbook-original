@@ -96,7 +96,7 @@ async def main():
     active_orders = mexc_client.get_active_orders()
 
     while True:
-        await asyncio.sleep(1)
+        await asyncio.sleep(10)
         try:
             logger.info('start')
 
