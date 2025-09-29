@@ -12,6 +12,7 @@ from loguru import logger
 from src.database.client import DatabaseClient
 import signal
 import traceback
+from typing import Optional
 
 load_dotenv()
 
@@ -28,7 +29,7 @@ mysql_host = os.getenv("MYSQL_HOST")
 mysql_user = os.getenv("MYSQL_USER")
 mysql_password = os.getenv("MYSQL_PASSWORD")
 
-event_queue: asyncio.Queue[QueueEvent] = asyncio.Queue()
+event_queue: Optional[asyncio.Queue[QueueEvent]] = None
 
 async def add_to_event_queue(event: QueueEvent):
     await event_queue.put(event)
@@ -76,6 +77,9 @@ kucoin_client = KucoinClient(api_key=api_key_kucoin, api_secret=api_secret_kucoi
 
 async def main():
     await asyncio.sleep(30)
+
+    global event_queue
+    event_queue = asyncio.Queue()
 
     await mexc_client.cancel_all_orders(first_currency=CryptoCurrency.RMV, second_currency=CryptoCurrency.USDT)
     await database_client.connect()
