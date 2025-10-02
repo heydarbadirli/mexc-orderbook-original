@@ -1,7 +1,8 @@
 from decimal import Decimal, ROUND_HALF_DOWN, ROUND_HALF_UP
 from src.crypto.mexc.client import MexcClient
 from src.crypto.kucoin.client import KucoinClient
-from src.model import ExchangeClient, OrderLevel, INVENTORY_BALANCE, INVENTORY_LIMIT, MEXC_TICK_SIZE
+from src.model import ExchangeClient, OrderLevel, INVENTORY_BALANCE, INVENTORY_LIMIT, MEXC_TICK_SIZE, OrderBook
+
 
 def calculate_market_depth(client: ExchangeClient, percent: Decimal) -> Decimal:
     orderbook = client.get_orderbook()
@@ -32,13 +33,58 @@ def calculate_market_depth(client: ExchangeClient, percent: Decimal) -> Decimal:
     return market_depth
 
 
+from decimal import Decimal
+from collections import defaultdict
+
+
+def subtract_orderbooks(main_orderbook, subtract_orderbook):
+    # Create dictionaries to aggregate sizes by price
+    ask_sizes = defaultdict(Decimal)
+    bid_sizes = defaultdict(Decimal)
+
+    # Add all orders from the main orderbook
+    for level in main_orderbook.asks:
+        ask_sizes[level.price] += level.size
+    for level in main_orderbook.bids:
+        bid_sizes[level.price] += level.size
+
+    # Subtract orders from the subtract orderbook
+    for level in subtract_orderbook.asks:
+        ask_sizes[level.price] -= level.size
+    for level in subtract_orderbook.bids:
+        bid_sizes[level.price] -= level.size
+
+    # Rebuild order lists, filtering out zero/negative sizes and keeping original structure
+    result_asks = []
+    result_bids = []
+
+    # Process asks (should be sorted by price ascending)
+    for price in sorted(ask_sizes.keys()):
+        size = ask_sizes[price]
+        if size > 0:
+            # Use the ID from main orderbook if available, otherwise empty
+            original_level = next((l for l in main_orderbook.asks if l.price == price), None)
+            id_value = original_level.id if original_level else ''
+            result_asks.append(OrderLevel(id=id_value, price=price, size=size))
+
+    # Process bids (should be sorted by price descending)
+    for price in sorted(bid_sizes.keys(), reverse=True):
+        size = bid_sizes[price]
+        if size > 0:
+            original_level = next((l for l in main_orderbook.bids if l.price == price), None)
+            id_value = original_level.id if original_level else ''
+            result_bids.append(OrderLevel(id=id_value, price=price, size=size))
+
+    return OrderBook(asks=result_asks, bids=result_bids)
+
 def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, active_bids: list[OrderLevel], active_asks: list[OrderLevel], percent: Decimal):
     mexc_orderbook = mexc_client.get_orderbook()
     kucoin_orderbook = kucoin_client.get_orderbook()
 
     our_mexc_orders = mexc_client.get_active_orders()
-    #print(our_mexc_orders)
-    #print(mexc_orderbook)
+    print(our_mexc_orders)
+    print(mexc_orderbook)
+    print(subtract_orderbooks(mexc_orderbook, our_mexc_orders))
     print('dddddddddddddddddddddddd')
 
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
