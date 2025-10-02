@@ -82,50 +82,33 @@ from decimal import Decimal
 
 
 def calculate_real_fair_price(orderbook):
-    bids = orderbook.bids
-    asks = orderbook.asks
+    bids = orderbook.bids  # Already sorted: highest bid first
+    asks = orderbook.asks  # Already sorted: lowest ask first
 
-    # Convert everything to Decimal explicitly
+    # Use the minimum number of levels available
+    N = min(len(bids), len(asks))
+
+    numerator = Decimal('0')
     total_ask_volume = Decimal('0')
     total_bid_volume = Decimal('0')
-    sum_bid_prices = Decimal('0')
-    sum_ask_prices = Decimal('0')
 
-    for ask_level in asks:
-        total_ask_volume += Decimal(str(ask_level.size))
-        sum_ask_prices += Decimal(str(ask_level.price))
+    # Sum from i=1 to N: (BidPrice[i] × AskVolume[i]) + (AskPrice[i] × BidVolume[i])
+    for i in range(N):
+        bid_price = bids[i].price
+        ask_volume = asks[i].size
+        ask_price = asks[i].price
+        bid_volume = bids[i].size
 
-    for bid_level in bids:
-        total_bid_volume += Decimal(str(bid_level.size))
-        sum_bid_prices += Decimal(str(bid_level.price))
+        numerator += (bid_price * ask_volume) + (ask_price * bid_volume)
+        total_ask_volume += ask_volume
+        total_bid_volume += bid_volume
 
-    print(f"Debug Info:")
-    print(f"Total Ask Volume: {total_ask_volume}")
-    print(f"Total Bid Volume: {total_bid_volume}")
-    print(f"Sum Bid Prices: {sum_bid_prices}")
-    print(f"Sum Ask Prices: {sum_ask_prices}")
-
-    # Calculate the terms
-    sum_bid_price_times_ask_volume = sum_bid_prices * total_ask_volume
-    sum_ask_price_times_bid_volume = sum_ask_prices * total_bid_volume
-
-    print(f"BidPrice × AskVolume: {sum_bid_price_times_ask_volume}")
-    print(f"AskPrice × BidVolume: {sum_ask_price_times_bid_volume}")
-
-    # Calculate fair price
-    numerator = sum_bid_price_times_ask_volume + sum_ask_price_times_bid_volume
     denominator = total_ask_volume + total_bid_volume
-
-    print(f"Numerator: {numerator}")
-    print(f"Denominator: {denominator}")
 
     if denominator == 0:
         return Decimal('0')
 
-    fair_price = numerator / denominator
-    print(f"Fair Price: {fair_price}")
-
-    return fair_price
+    return numerator / denominator
 
 
 
