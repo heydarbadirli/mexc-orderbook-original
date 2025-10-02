@@ -77,15 +77,46 @@ def subtract_orderbooks(main_orderbook, subtract_orderbook):
 
     return OrderBook(asks=result_asks, bids=result_bids)
 
+
+def calculate_real_fair_price(orderbook):
+    bids = orderbook.bids
+    asks = orderbook.asks
+
+    # Pre-calculate total volumes
+    total_ask_volume = sum(ask_level.size for ask_level in asks)
+    total_bid_volume = sum(bid_level.size for bid_level in bids)
+
+    # Calculate sum(BidPrice[i] × AskVolume[i])
+    # = (sum of all bid prices) × (total ask volume)
+    sum_bid_prices = sum(bid_level.price for bid_level in bids)
+    sum_bid_price_times_ask_volume = sum_bid_prices * total_ask_volume
+
+    # Calculate sum(AskPrice[j] × BidVolume[j])
+    # = (sum of all ask prices) × (total bid volume)
+    sum_ask_prices = sum(ask_level.price for ask_level in asks)
+    sum_ask_price_times_bid_volume = sum_ask_prices * total_bid_volume
+
+    # Calculate fair price
+    numerator = sum_bid_price_times_ask_volume + sum_ask_price_times_bid_volume
+    denominator = total_ask_volume + total_bid_volume
+
+    if denominator == 0:
+        return Decimal('0')
+
+    return numerator / denominator
+
+
 def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, active_bids: list[OrderLevel], active_asks: list[OrderLevel], percent: Decimal):
     mexc_orderbook = mexc_client.get_orderbook()
     kucoin_orderbook = kucoin_client.get_orderbook()
 
     our_mexc_orders = mexc_client.get_active_orders()
-    print(our_mexc_orders)
-    print(mexc_orderbook)
-    print(subtract_orderbooks(mexc_orderbook, our_mexc_orders))
-    print('dddddddddddddddddddddddd')
+    #print(our_mexc_orders)
+    #print(mexc_orderbook)
+    #print(subtract_orderbooks(mexc_orderbook, our_mexc_orders))
+    real_fair_price = calculate_real_fair_price(subtract_orderbooks(mexc_orderbook, our_mexc_orders))
+    print(f"Real MexC Fair Price: {real_fair_price:.6f}")
+    print('\n')
 
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
         return None
