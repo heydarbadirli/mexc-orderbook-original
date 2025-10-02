@@ -37,8 +37,8 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
     kucoin_orderbook = kucoin_client.get_orderbook()
 
     our_mexc_orders = mexc_client.get_active_orders()
-    print(our_mexc_orders)
-    print(mexc_orderbook)
+    #print(our_mexc_orders)
+    #print(mexc_orderbook)
     print('dddddddddddddddddddddddd')
 
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
