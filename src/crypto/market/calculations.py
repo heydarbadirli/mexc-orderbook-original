@@ -143,7 +143,7 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
     if fair_price < kucoin_orderbook.bids[0].price:
         fair_price = kucoin_orderbook.bids[0].price.quantize(Decimal('0.00001'), rounding=ROUND_HALF_UP)
 
-    return fair_price, real_fair_price
+    return fair_price
 
 
 def calculate_market_spread(client: ExchangeClient):

@@ -105,12 +105,12 @@ async def main():
             logger.info('start')
 
             market_depth = calculate_market_depth(client=mexc_client, percent=Decimal('2'))
-            fair_price, real_fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=[], active_bids=[], percent=Decimal('2'))
+            fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=[], active_bids=[], percent=Decimal('2'))
             market_spread = calculate_market_spread(client=mexc_client)
 
             logger.info(f"market depth: {market_depth}")
             logger.info(f"fair price: {fair_price}")
-            logger.info(f"Reak fair price: {real_fair_price}")
+            #logger.info(f"Reak fair price: {real_fair_price}")
             logger.info(f"market spread: {market_spread}")
             logger.info(f'len of active asks: {len(active_orders.asks)}')
             logger.info(f'asks: {active_orders.asks}')
