@@ -110,7 +110,7 @@ async def main():
 
             logger.info(f"market depth: {market_depth}")
             logger.info(f"fair price: {fair_price}")
-            logger.info(f"Reak fair price: {real_fair_price}")
+            logger.info(f"Real fair price: {real_fair_price}")
             logger.info(f"market spread: {market_spread}")
             logger.info(f'len of active asks: {len(active_orders.asks)}')
             logger.info(f'asks: {active_orders.asks}')
