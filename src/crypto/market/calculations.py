@@ -121,6 +121,7 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
     #print(mexc_orderbook)
     #print(subtract_orderbooks(mexc_orderbook, our_mexc_orders))
     real_fair_price = calculate_real_fair_price(subtract_orderbooks(mexc_orderbook, our_mexc_orders))
+    real_fair_price = round(Decimal(real_fair_price), 5)
     #print("Real MexC Fair Price: ", real_fair_price)
 
 
