@@ -143,7 +143,7 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
     if fair_price < kucoin_orderbook.bids[0].price:
         fair_price = kucoin_orderbook.bids[0].price.quantize(Decimal('0.00001'), rounding=ROUND_HALF_UP)
 
-    return fair_price
+    return fair_price, real_fair_price
 
 
 def calculate_market_spread(client: ExchangeClient):
@@ -165,7 +165,7 @@ def get_quotes(mexc_client: MexcClient, kucoin_client: KucoinClient):
     active_orders = mexc_client.get_active_orders()
     balance = mexc_client.get_balance()
 
-    fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal('2'))
+    fair_price, real_fair_price = calculate_fair_price(mexc_client=mexc_client, kucoin_client=kucoin_client, active_asks=active_orders.asks, active_bids=active_orders.bids, percent=Decimal('2'))
 
     if fair_price is None or 'RMV' not in balance or 'USDT' not in balance:
         return None, None
