@@ -125,7 +125,7 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
 
 
     if len(mexc_orderbook.asks) == 0 or len(kucoin_orderbook.asks) == 0:
-        return None
+        return None, None
 
     mexc_mid_price = (mexc_orderbook.asks[0].price + mexc_orderbook.bids[0].price) / 2
     kucoin_mid_price = (kucoin_orderbook.asks[0].price + kucoin_orderbook.bids[0].price) / 2
@@ -140,6 +140,9 @@ def calculate_fair_price(mexc_client: MexcClient, kucoin_client: KucoinClient, a
 
     if fair_price < kucoin_orderbook.bids[0].price:
         fair_price = kucoin_orderbook.bids[0].price.quantize(Decimal('0.00001'), rounding=ROUND_HALF_UP)
+
+    if real_fair_price is None:
+        return fair_price, fair_price
 
     return fair_price, real_fair_price
 
