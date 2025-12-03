@@ -10,7 +10,7 @@ MEXC_TICK_SIZE = Decimal('0.00001')
 INVENTORY_BALANCE = Decimal('500_000')
 INVENTORY_LIMIT = Decimal('200_000')
 
-EXPECTED_MARKET_DEPTH = Decimal(1800)
+EXPECTED_MARKET_DEPTH = Decimal(1250)
 
 class CryptoCurrency(Enum):
     RMV = "RMV"
